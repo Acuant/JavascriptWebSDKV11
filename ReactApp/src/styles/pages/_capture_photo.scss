@@ -1,0 +1,62 @@
+.capture_photo {
+
+    @media screen and (orientation:landscape) and (max-width: $tablet_small) {
+    }
+
+    .capture_group {
+
+        @media screen and (orientation:landscape) and (max-width: $tablet_small) {
+
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+
+        }
+
+        .capture_container {
+    
+            @media screen and (orientation:landscape) and (max-width: $tablet_small) {
+                width: 60%;
+                box-sizing: border-box;
+            }
+    
+            .capture {
+        
+                @include breakpoint() {
+            
+                    display: block;
+            
+                    width: 100%;
+                    height: 100%;
+            
+                    margin: 0 0 $gap 0;
+            
+                }
+                @media screen and (orientation:landscape) and (max-width: $tablet_small) {
+                    margin: 0;
+                }
+            
+            }
+        
+        }
+        
+        .capture_controls {
+    
+            @media screen and (orientation:landscape) and (max-width: $tablet_small) {
+
+                width: 40%;
+                box-sizing: border-box;
+
+                justify-content: center;
+
+            }
+    
+            @include breakpoint() {
+        
+            }
+        
+        }
+
+    }
+
+}

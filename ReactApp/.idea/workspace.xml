@@ -1,0 +1,942 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="f581789d-2329-47f8-bcf2-2ae9f66f88ba" name="Default" comment="Fixes on aspect ratio check - IDSGO-27">
+      <change afterPath="$PROJECT_DIR$/src/assets/video/scan_process.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/screens/CapturePhoto.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/screens/CapturePhoto.js" afterDir="false" />
+    </list>
+    <ignored path="$PROJECT_DIR$/.tmp/" />
+    <ignored path="$PROJECT_DIR$/temp/" />
+    <ignored path="$PROJECT_DIR$/tmp/" />
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileEditorManager">
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/screens/CapturePhoto.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="286">
+              <caret line="97" lean-forward="true" selection-start-line="97" selection-end-line="97" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/screens/Error/DefaultError.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-642">
+              <caret line="15" column="10" lean-forward="true" selection-start-line="15" selection-start-column="10" selection-end-line="15" selection-end-column="10" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/screens/ProcessedImageResult.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="246">
+              <caret line="32" lean-forward="true" selection-start-line="32" selection-end-line="32" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/.env.local">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="90">
+              <caret line="6" column="29" selection-start-line="6" selection-start-column="29" selection-end-line="6" selection-end-column="29" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/index.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="120">
+              <caret line="8" selection-start-line="8" selection-end-line="8" />
+              <folding>
+                <element signature="e#0#26#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/registerServiceWorker.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1650">
+              <caret line="110" column="26" selection-start-line="110" selection-start-column="16" selection-end-line="110" selection-end-column="26" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/store.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="254">
+              <caret line="28" column="23" selection-start-line="28" selection-start-column="23" selection-end-line="28" selection-end-column="23" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/package.json">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="168">
+              <caret line="18" column="22" selection-start-line="18" selection-start-column="22" selection-end-line="18" selection-end-column="22" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/.env">
+          <provider selected="true" editor-type-id="text-editor">
+            <state>
+              <caret selection-end-column="41" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/screens/Results/IDPassport.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="720">
+              <caret line="58" selection-start-line="58" selection-end-line="58" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>cardType</find>
+      <find>console.log</find>
+      <find>classificationData</find>
+      <find>idscangoweb@acuantcorp.com</find>
+      <find>28d7b7pkzs3uxhjs</find>
+      <find>faceMatch</find>
+      <find>signature</find>
+      <find>process.env.REACT_APP_IDPASSPORT_ENABLED === 'true'</find>
+      <find>idPassportEnabled</find>
+      <find>YW5kcmVpQG9rYXBpc3R1ZGlvLmNvbTp6NmswdmhrYjRnMmJkMmFj</find>
+      <find>andrei@okapistudio.com</find>
+      <find>z6k0vhkb4g2bd2ac</find>
+      <find>REACT_APP_USER_NAME</find>
+      <find>REACT_APP_SUBSCRIPTION_ID</find>
+      <find>loadingContainer</find>
+      <find>gif</find>
+      <find>finder</find>
+      <find>loading</find>
+      <find>pre-packager</find>
+      <find>titleWithError</find>
+      <find>frontSubmitted</find>
+      <find>getOrientationCopy</find>
+      <find>RESET_ID</find>
+      <find>getClassification</find>
+      <find>redirect</find>
+      <find>increment</find>
+      <find>isRetr</find>
+      <find>classi</find>
+      <find>scan_process</find>
+      <find>retryLastStep</find>
+    </findStrings>
+    <replaceStrings>
+      <replace>frontImage</replace>
+      <replace>payload:</replace>
+      <replace>action.payload</replace>
+      <replace>let</replace>
+      <replace>cardImage</replace>
+    </replaceStrings>
+    <dirStrings>
+      <dir>$PROJECT_DIR$</dir>
+      <dir>$PROJECT_DIR$/build</dir>
+      <dir>$PROJECT_DIR$/src</dir>
+      <dir>$PROJECT_DIR$/src/screens</dir>
+    </dirStrings>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/README.md" />
+        <option value="$PROJECT_DIR$/.gitignore" />
+        <option value="$PROJECT_DIR$/src/screens/CaptureId.js" />
+        <option value="$PROJECT_DIR$/public/env.js" />
+        <option value="$PROJECT_DIR$/src/screens/Selfie.js" />
+        <option value="$PROJECT_DIR$/src/screens/ProcessedImage.js" />
+        <option value="$PROJECT_DIR$/src/screens/Error.js" />
+        <option value="$PROJECT_DIR$/src/screens/Error/Error.js" />
+        <option value="$PROJECT_DIR$/src/services/api/medcardApi.js" />
+        <option value="$PROJECT_DIR$/src/screens/reducers/index.js" />
+        <option value="$PROJECT_DIR$/src/services/shared/mediscan.js" />
+        <option value="$PROJECT_DIR$/src/services/api/medicScan.js" />
+        <option value="$PROJECT_DIR$/src/screens/CaptureBackID.js" />
+        <option value="$PROJECT_DIR$/src/screens/reducers/config.js" />
+        <option value="$PROJECT_DIR$/src/rootReducer.js" />
+        <option value="$PROJECT_DIR$/src/screens/CaptureFrontID.js" />
+        <option value="$PROJECT_DIR$/src/screens/ShowImage.js" />
+        <option value="$PROJECT_DIR$/src/screens/ProcessImage.js" />
+        <option value="$PROJECT_DIR$/src/screens/Processing2.js" />
+        <option value="$PROJECT_DIR$/src/screens/actions/idPropertiesActions.js" />
+        <option value="$PROJECT_DIR$/src/screens/reducers/idPropertiesReducer.js" />
+        <option value="$PROJECT_DIR$/src/screens/reducers/processedDataReducer.js" />
+        <option value="$PROJECT_DIR$/src/services/api/api.js" />
+        <option value="$PROJECT_DIR$/src/screens/actions/configActions.js" />
+        <option value="$PROJECT_DIR$/src/screens/Error/LowResolution.js" />
+        <option value="$PROJECT_DIR$/src/screens/actions/index.js" />
+        <option value="$PROJECT_DIR$/src/screens/ProcessedImageResult.js" />
+        <option value="$PROJECT_DIR$/src/screens/Processing.js" />
+        <option value="$PROJECT_DIR$/src/screens/Results.js" />
+        <option value="$PROJECT_DIR$/src/screens/Results/index.js" />
+        <option value="$PROJECT_DIR$/src/screens/reducers/configReducer.js" />
+        <option value="$PROJECT_DIR$/src/screens/CaptureSelfie.js" />
+        <option value="$PROJECT_DIR$/src/screens/actions/processDataActions.js" />
+        <option value="$PROJECT_DIR$/.env.local" />
+        <option value="$PROJECT_DIR$/src/services/shared/request.js" />
+        <option value="$PROJECT_DIR$/src/services/shared/medicScan.js" />
+        <option value="$PROJECT_DIR$/prepackager.js" />
+        <option value="$PROJECT_DIR$/src/services/shared/faceMatchRequest.js" />
+        <option value="$PROJECT_DIR$/src/screens/Results/MedicalCard.js" />
+        <option value="$PROJECT_DIR$/src/screens/Error/index.js" />
+        <option value="$PROJECT_DIR$/src/style/main.css" />
+        <option value="$PROJECT_DIR$/src/screens/Error/MobileOnly.js" />
+        <option value="$PROJECT_DIR$/src/styles/main.scss" />
+        <option value="$PROJECT_DIR$/package.json" />
+        <option value="$PROJECT_DIR$/src/store.js" />
+        <option value="$PROJECT_DIR$/src/screens/Results/IDPassport.js" />
+        <option value="$PROJECT_DIR$/src/App.js" />
+        <option value="$PROJECT_DIR$/src/index.js" />
+        <option value="$PROJECT_DIR$/src/screens/Error/DefaultError.js" />
+        <option value="$PROJECT_DIR$/.env" />
+        <option value="$PROJECT_DIR$/src/screens/CapturePhoto.js" />
+      </list>
+    </option>
+  </component>
+  <component name="JsFlowSettings">
+    <service-enabled>true</service-enabled>
+    <exe-path />
+    <other-services-enabled>true</other-services-enabled>
+    <auto-save>true</auto-save>
+  </component>
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="y" value="23" />
+    <option name="width" value="1554" />
+    <option name="height" value="1105" />
+  </component>
+  <component name="ProjectView">
+    <navigator proportions="" version="1">
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="idscango" type="b2602c69:ProjectViewProjectNode" />
+              <item name="idscango" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="idscango" type="b2602c69:ProjectViewProjectNode" />
+              <item name="idscango" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="idscango" type="b2602c69:ProjectViewProjectNode" />
+              <item name="idscango" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="assets" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="idscango" type="b2602c69:ProjectViewProjectNode" />
+              <item name="idscango" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="assets" type="462c0819:PsiDirectoryNode" />
+              <item name="video" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="idscango" type="b2602c69:ProjectViewProjectNode" />
+              <item name="idscango" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="screens" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="idscango" type="b2602c69:ProjectViewProjectNode" />
+              <item name="idscango" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="screens" type="462c0819:PsiDirectoryNode" />
+              <item name="Error" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="idscango" type="b2602c69:ProjectViewProjectNode" />
+              <item name="idscango" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="services" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+      <pane id="Scope" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="HbShouldOpenHtmlAsHb" value="" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="node.js.detected.package.prettier" value="true" />
+    <property name="node.js.path.for.package.prettier" value="project" />
+    <property name="node.js.selected.package.prettier" value="" />
+    <property name="nodejs.jest.jest_package" value="$PROJECT_DIR$/node_modules/react-scripts" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="nodejs_package_manager_path" value="yarn" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/assets/video" />
+      <recent name="$PROJECT_DIR$/src/screens" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/screens/Error" />
+    </key>
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="f581789d-2329-47f8-bcf2-2ae9f66f88ba" name="Default" comment="" />
+      <created>1531984174001</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1531984174001</updated>
+      <workItem from="1531984175454" duration="94000" />
+      <workItem from="1532420578405" duration="11564000" />
+      <workItem from="1532435605110" duration="5128000" />
+      <workItem from="1532525687268" duration="690000" />
+      <workItem from="1532526515460" duration="109000" />
+      <workItem from="1532537264792" duration="20807000" />
+      <workItem from="1536325099041" duration="656000" />
+      <workItem from="1537846964658" duration="1558000" />
+      <workItem from="1537867916174" duration="68000" />
+      <workItem from="1539589411451" duration="28693000" />
+      <workItem from="1540454439693" duration="41321000" />
+      <workItem from="1540832161104" duration="931000" />
+      <workItem from="1540876172299" duration="25956000" />
+      <workItem from="1541004723125" duration="6564000" />
+      <workItem from="1541082844022" duration="425000" />
+      <workItem from="1541154979899" duration="916000" />
+      <workItem from="1541409725316" duration="271000" />
+      <workItem from="1541688001796" duration="12974000" />
+      <workItem from="1542129585302" duration="1464000" />
+      <workItem from="1542201821614" duration="2702000" />
+      <workItem from="1542620083392" duration="2647000" />
+      <workItem from="1542711260311" duration="1999000" />
+      <workItem from="1542714907166" duration="1998000" />
+      <workItem from="1542963865917" duration="25000" />
+      <workItem from="1542981811708" duration="5311000" />
+      <workItem from="1543297320867" duration="250000" />
+      <workItem from="1543311453887" duration="29000" />
+      <workItem from="1543345999769" duration="688000" />
+      <workItem from="1544006332641" duration="18916000" />
+      <workItem from="1544533658150" duration="5404000" />
+    </task>
+    <task id="LOCAL-00001" summary="idScanGo - Web v1.0.0">
+      <created>1532431150577</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1532431150577</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Get the result from Result param instead of iterating over the entire Alerts object">
+      <created>1532526418801</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1532526418801</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Do not allow anything about a document to be processed">
+      <created>1532526599002</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1532526599002</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Review changes">
+      <created>1532542323471</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1532542323471</updated>
+    </task>
+    <task id="LOCAL-00005" summary="IDSGO-5">
+      <created>1535545062180</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1535545062180</updated>
+    </task>
+    <task id="LOCAL-00006" summary="IDSGO-12">
+      <created>1535551029164</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1535551029164</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Merge idsgo-4 into master">
+      <created>1536057035024</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1536057035024</updated>
+    </task>
+    <task id="LOCAL-00008" summary="IDSGO-14">
+      <created>1537867931562</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1537867931562</updated>
+    </task>
+    <task id="LOCAL-00009" summary="IDSGO-11">
+      <created>1539606474215</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1539606474215</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Enable disable medical and id/passport flow through .env - IDSGO-19">
+      <created>1540895203506</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1540895203506</updated>
+    </task>
+    <task id="LOCAL-00011" summary="IDSGO-20">
+      <created>1540895609450</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1540895609450</updated>
+    </task>
+    <task id="LOCAL-00012" summary="IDSGO-18">
+      <created>1540901073557</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1540901073557</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Show back of the medical card on results (if available)">
+      <created>1540902243469</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1540902243469</updated>
+    </task>
+    <task id="LOCAL-00014" summary="Remove available options for scanning from redux as we don't need to store that persistently">
+      <created>1540902430202</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1540902430202</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Add Ms IE and Edge support - IDSGO-8">
+      <created>1540904219986</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1540904219986</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Fix username and password exposed - IDSGO-21">
+      <created>1540909826500</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1540909826500</updated>
+    </task>
+    <task id="LOCAL-00017" summary="IDSGO-11">
+      <created>1540976762937</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1540976762938</updated>
+    </task>
+    <task id="LOCAL-00018" summary="Add a .env variable to disable the app on desktops - IDSGO-22">
+      <created>1541066444151</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1541066444151</updated>
+    </task>
+    <task id="LOCAL-00019" summary="Fix pre-packager build - IDSGO-21">
+      <created>1541067436981</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1541067436981</updated>
+    </task>
+    <task id="LOCAL-00020" summary="Replace current url instead of pushing it to browser history">
+      <created>1542711744302</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1542711744302</updated>
+    </task>
+    <task id="LOCAL-00021" summary="remove component import">
+      <created>1542711761768</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1542711761768</updated>
+    </task>
+    <task id="LOCAL-00022" summary="Add new animation">
+      <created>1543863800194</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1543863800194</updated>
+    </task>
+    <task id="LOCAL-00023" summary="dep update">
+      <created>1543944164413</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1543944164413</updated>
+    </task>
+    <task id="LOCAL-00024" summary="Fix vulnerabilities">
+      <created>1544011268290</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1544011268290</updated>
+    </task>
+    <task id="LOCAL-00025" summary="IDSGO-27">
+      <created>1544085661262</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1544085661262</updated>
+    </task>
+    <task id="LOCAL-00026" summary="State of transaction - IDSGO-29">
+      <created>1544437488785</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1544437488785</updated>
+    </task>
+    <task id="LOCAL-00027" summary="Unregister service worker - Do not cache things - IDSGO-30">
+      <created>1544440663865</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1544440663865</updated>
+    </task>
+    <task id="LOCAL-00028" summary="Fixes on aspect ratio check - IDSGO-27">
+      <created>1544445886232</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1544445886232</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
+    <servers />
+  </component>
+  <component name="TimeTrackingManager">
+    <option name="totallyTimeSpent" value="244344000" />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="0" y="23" width="1920" height="1107" extended-state="6" />
+    <editor active="true" />
+    <layout>
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.2685624" />
+      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
+      <window_info id="npm" order="2" side_tool="true" />
+      <window_info id="Favorites" order="3" side_tool="true" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" weight="0.32975295" />
+      <window_info anchor="bottom" id="Run" order="2" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.50394946" side_tool="true" visible="true" weight="0.3596059" />
+      <window_info anchor="bottom" id="Messages" order="8" />
+      <window_info anchor="bottom" id="Version Control" order="9" sideWeight="0.4697209" weight="0.32379073" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="10" sideWeight="0.49605057" visible="true" weight="0.3596059" />
+      <window_info anchor="bottom" id="TypeScript" order="11" />
+      <window_info anchor="bottom" id="Docker" order="12" show_stripe_button="false" />
+      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+    </layout>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="IDSGO-5" />
+    <MESSAGE value="IDSGO-12" />
+    <MESSAGE value="Merge idsgo-4 into master" />
+    <MESSAGE value="IDSGO-14" />
+    <MESSAGE value="Enable disable medical and id/passport flow through .env - IDSGO-19" />
+    <MESSAGE value="IDSGO-20" />
+    <MESSAGE value="IDSGO-18" />
+    <MESSAGE value="Show back of the medical card on results (if available)" />
+    <MESSAGE value="Remove available options for scanning from redux as we don't need to store that persistently" />
+    <MESSAGE value="Add Ms IE and Edge support - IDSGO-8" />
+    <MESSAGE value="Fix username and password expsoed" />
+    <MESSAGE value="Fix username and password exposed - IDSGO-21" />
+    <MESSAGE value="IDSGO-11" />
+    <MESSAGE value="Add a .env variable to disable the app on desktops - IDSGO-22" />
+    <MESSAGE value="Fix pre-packager build - IDSGO-21" />
+    <MESSAGE value="fix back button on disable" />
+    <MESSAGE value="Replace current url instead of pushing it to browser history" />
+    <MESSAGE value="remove component import" />
+    <MESSAGE value="Add new animation" />
+    <MESSAGE value="dep update" />
+    <MESSAGE value="Fix vulnerabilities" />
+    <MESSAGE value="IDSGO-27" />
+    <MESSAGE value="State of transaction - IDSGO-29" />
+    <MESSAGE value="Unregister service worker - Do not cache things - IDSGO-30" />
+    <MESSAGE value="Fixes on aspect ratio check - IDSGO-27" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixes on aspect ratio check - IDSGO-27" />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/src/screens/reducers/index.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="9" column="28" selection-start-line="9" selection-start-column="14" selection-end-line="9" selection-end-column="28" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/rootReducer.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="120">
+          <caret line="8" column="1" lean-forward="true" selection-start-line="8" selection-start-column="1" selection-end-line="8" selection-end-column="1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/reducers/processedDataReducer.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="180">
+          <caret line="12" column="43" selection-start-line="12" selection-start-column="23" selection-end-line="12" selection-end-column="43" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/CaptureFrontID.js" />
+    <entry file="file://$PROJECT_DIR$/src/screens/CaptureBackID.js" />
+    <entry file="file://$PROJECT_DIR$/src/screens/actions/index.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="5" selection-start-line="5" selection-end-line="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/ProcessImage.js" />
+    <entry file="file://$PROJECT_DIR$/src/screens/Results.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="720">
+          <caret line="55" selection-start-line="55" selection-end-line="55" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/build/static/js/main.c7676a3a.js" />
+    <entry file="file://$PROJECT_DIR$/build/static/js/main.5f60d1ce.js.map" />
+    <entry file="file://$PROJECT_DIR$/build/static/js/main.5f60d1ce.js" />
+    <entry file="file://$PROJECT_DIR$/.env.local.test" />
+    <entry file="file://$PROJECT_DIR$/src/services/shared/medicScan.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="15" column="6" lean-forward="true" selection-start-line="15" selection-start-column="6" selection-end-line="15" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/prepackager.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="45">
+          <caret line="3" column="29" lean-forward="true" selection-start-line="3" selection-start-column="29" selection-end-line="3" selection-end-column="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="315">
+          <caret line="21" column="15" selection-start-line="21" selection-start-column="15" selection-end-line="21" selection-end-column="15" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/services/shared/request.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="270">
+          <caret line="18" column="35" selection-start-line="18" selection-start-column="35" selection-end-line="18" selection-end-column="35" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/assets/images/finder@2x.png">
+      <provider selected="true" editor-type-id="images" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/services/shared/faceMatchRequest.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="195">
+          <caret line="13" column="55" selection-start-line="13" selection-start-column="55" selection-end-line="13" selection-end-column="55" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/Error/LowResolution.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="840">
+          <caret line="61" column="23" selection-start-line="23" selection-start-column="12" selection-end-line="61" selection-end-column="23" />
+          <folding>
+            <element signature="e#0#49#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/Error/MobileOnly.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="150">
+          <caret line="10" column="22" selection-start-line="10" selection-start-column="22" selection-end-line="10" selection-end-column="22" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/App.test.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <folding>
+            <element signature="e#0#26#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/Results/index.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="285">
+          <caret line="25" column="33" selection-start-line="25" selection-start-column="33" selection-end-line="25" selection-end-column="33" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/styles/main.css">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="5505">
+          <caret line="374" selection-end-line="374" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/Error/index.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="120">
+          <caret line="15" column="14" selection-start-line="15" selection-start-column="14" selection-end-line="15" selection-end-column="14" />
+          <folding>
+            <element signature="e#0#49#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/assets/images/card_back@2x.png">
+      <provider selected="true" editor-type-id="images" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/styles/main.scss">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="375">
+          <caret line="25" selection-start-line="25" selection-end-line="25" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/CaptureSelfie.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="399">
+          <caret line="151" selection-start-line="151" selection-end-line="151" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/actions/configActions.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="15" column="6" selection-start-line="15" selection-start-column="6" selection-end-line="15" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/actions/processDataActions.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="329">
+          <caret line="114" column="29" selection-start-line="114" selection-start-column="29" selection-end-line="114" selection-end-column="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/Results/MedicalCard.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="569">
+          <caret line="129" column="89" selection-start-line="129" selection-start-column="89" selection-end-line="129" selection-end-column="89" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/actions/idPropertiesActions.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="420">
+          <caret line="28" column="32" selection-start-line="28" selection-start-column="24" selection-end-line="28" selection-end-column="32" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/reducers/configReducer.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="150">
+          <caret line="10" column="30" selection-start-line="10" selection-start-column="16" selection-end-line="10" selection-end-column="30" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/reducers/idPropertiesReducer.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="150">
+          <caret line="10" column="40" lean-forward="true" selection-start-line="10" selection-start-column="40" selection-end-line="10" selection-end-column="40" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/build/service-worker.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret column="75" selection-start-column="75" selection-end-column="75" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/node_modules/history/createBrowserHistory.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="230">
+          <caret line="233" column="6" selection-start-line="233" selection-start-column="6" selection-end-line="233" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/services/api/api.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="240">
+          <caret line="16" column="36" selection-start-line="16" selection-start-column="36" selection-end-line="16" selection-end-column="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/App.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="285">
+          <caret line="19" column="25" selection-start-line="19" selection-start-column="25" selection-end-line="19" selection-end-column="25" />
+          <folding>
+            <element signature="e#0#39#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/index.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="120">
+          <caret line="8" selection-start-line="8" selection-end-line="8" />
+          <folding>
+            <element signature="e#0#26#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/registerServiceWorker.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1650">
+          <caret line="110" column="26" selection-start-line="110" selection-start-column="16" selection-end-line="110" selection-end-column="26" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/Results/IDPassport.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="720">
+          <caret line="58" selection-start-line="58" selection-end-line="58" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/store.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="254">
+          <caret line="28" column="23" selection-start-line="28" selection-start-column="23" selection-end-line="28" selection-end-column="23" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/package.json">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="168">
+          <caret line="18" column="22" selection-start-line="18" selection-start-column="22" selection-end-line="18" selection-end-column="22" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/build/index.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret column="71" lean-forward="true" selection-start-column="71" selection-end-column="71" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/build/static/js/main.335de82d.chunk.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="15">
+          <caret line="1" column="47" lean-forward="true" selection-start-line="1" selection-start-column="47" selection-end-line="1" selection-end-column="47" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/assets/video/scan_process.gif">
+      <provider selected="true" editor-type-id="images" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/Processing.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="240">
+          <caret line="17" column="53" lean-forward="true" selection-start-line="17" selection-start-column="53" selection-end-line="17" selection-end-column="53" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.env">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret selection-end-column="41" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.env.local">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="90">
+          <caret line="6" column="29" selection-start-line="6" selection-start-column="29" selection-end-line="6" selection-end-column="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/ProcessedImageResult.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="246">
+          <caret line="32" lean-forward="true" selection-start-line="32" selection-end-line="32" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/Error/DefaultError.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-642">
+          <caret line="15" column="10" lean-forward="true" selection-start-line="15" selection-start-column="10" selection-end-line="15" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/screens/CapturePhoto.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="286">
+          <caret line="97" lean-forward="true" selection-start-line="97" selection-end-line="97" />
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>

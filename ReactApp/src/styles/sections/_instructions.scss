@@ -1,0 +1,43 @@
+.instructions {
+
+    @include breakpoint() {
+    }
+
+    ul {
+
+        @include breakpoint() {
+
+            padding: 0 0 0 20px;
+            margin: 0 0 $gap;
+
+        }
+
+        li {
+
+            @include breakpoint() {
+
+                margin: 0 0 10px 0;
+                padding: 0 0 10px 0;
+                border-bottom: solid 1px $gray;
+
+                list-style: square;
+
+                font-size: 16px;
+                line-height: 24px;
+
+            }
+
+            &:last-child {
+
+                @include breakpoint() {
+                    margin: 0;
+                    border-bottom: none;
+                }
+
+            }
+
+        }
+
+    }
+
+}

@@ -1,0 +1,141 @@
+//  SPECIFIC MOBILE FIRST BREAKPOINT MIXIN FOR SCREENS
+@mixin breakpoint($args: null) {
+	//  CASE IF NO DATA IS PASSED WE SHALL OUTPUT MEDIA QUERY ONLY FOR SCREEN THIS MEANS STYLES WILL BE GLOBALLY AND INHERITABLE BY UPPER BREAKPOINTS
+	@if $args == null {
+		@media screen {
+			@content;
+		}
+	}
+	//  CASE IF DATA IS PASSED WE GENERATE BREAKPOINT FOR PASSED BREAKPOINT
+	@else {
+		@media screen and (min-width: $args) {
+			@content;
+		}
+	}
+}
+
+@mixin breakpoint-reverse($args){
+	@media screen and (max-width: $args){
+		@content;
+	}
+}
+
+//RESPONSIVE
+@mixin responsive($args){
+	@media screen and (max-width: $args){
+		@content;
+	}
+}
+
+//  BOX SHADOW
+@mixin box-shadow($args...) {
+	-webkit-box-shadow: $args;
+	-moz-box-shadow: $args;
+	-ms-box-shadow: $args;
+	box-shadow: $args;
+}
+
+//  TRANSFORM
+@mixin transform($transforms) {
+	-webkit-transform: $transforms;
+	-moz-transform: $transforms;
+	-ms-transform: $transforms;
+	transform: $transforms;
+}
+
+//  TRANSITION
+@mixin transition($transitions) {
+	-webkit-transition: $transitions;
+	-moz-transition: $transitions;
+	-ms-transition: $transitions;
+	transition: $transitions;
+}
+
+@mixin clearfix() {
+	&::after {
+		content: '';
+		display: table;
+		clear: both;
+	}
+}
+
+//  KEYFRAMES MIXIN
+@mixin keyframes($keyframes-name) {
+	@-webkit-keyframes #{$keyframes-name} {
+		@content;
+	}
+	@-moz-keyframes #{$keyframes-name} {
+		@content;
+	}
+	@-o-keyframes #{$keyframes-name} {
+		@content;
+	}
+	@keyframes #{$keyframes-name} {
+		@content;
+	}
+}
+
+//  ANIMATION MIXIN
+@mixin animation($args...) {
+	-webkit-animation: $args;
+	-moz-animation:    $args;
+	-o-animation:      $args;
+	animation:         $args;
+}
+
+//  PLACEHOLDER
+@mixin placeholder {
+	&::-webkit-input-placeholder {
+		@content
+	}
+	&:-moz-placeholder {
+		@content
+	}
+	&::-moz-placeholder {
+		@content
+	}
+	&:-ms-input-placeholder {
+		@content
+	}
+}
+
+// FULLIMAGE
+@mixin backgroundImage($size){
+	background-size: $size;
+	background-repeat: no-repeat;
+	background-position: center center;
+}
+
+@mixin generate-keyframe($state, $direction){
+	
+	$from: 100%;
+    $to: 0;
+
+	@if $state == in {
+        @if $direction == up {
+            $from: -100%;
+        } @else{
+            $from: 100%;
+        }
+        $to: 0;
+    } @else {
+        //if animation is toTop or toBottom
+        $from: 0;
+        @if $direction == up {
+            $to: -100%;
+        } @else{
+            $to: 100%;
+        }
+    }
+	
+	
+	
+	@keyframes slideY-#{$state}-#{$direction} {
+		from{
+			top: $from;
+		}
+		to{
+			top: $to;
+		}
+	}
+}

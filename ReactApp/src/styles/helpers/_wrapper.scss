@@ -1,0 +1,12 @@
+//  WRAPPER
+.wrapper {
+
+    @include breakpoint() {
+
+        padding: 0 $gap;
+
+        max-width: calc(100vw - ( 2 * #{$gap} ) );
+
+    }
+
+}

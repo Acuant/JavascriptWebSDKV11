@@ -1,0 +1,31 @@
+//  HEADER
+
+header {
+
+    @include breakpoint() {
+
+        padding: $gap 0;
+
+    }
+
+}
+
+//  LOGO
+.logo {
+
+    @include breakpoint() {
+
+        margin: 0 0 0 auto;
+
+        width: 100px;
+        height: 48px;
+
+        background-image: url('../assets/images/acuant-logo@2x@3x.png');
+        background-repeat: no-repeat;
+        background-attachment: scroll;
+        background-position: center center;
+        background-size: contain;
+
+    }
+
+}

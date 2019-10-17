@@ -1,0 +1,33 @@
+.btn {
+
+    @include breakpoint() {
+
+        color: $white;
+        background-color: $blue;
+
+        font-size: 16px;
+        line-height: 48px;
+        font-weight: $bold;
+
+        text-align: center;
+
+        margin: 0 0 $gap 0;
+
+        display: block;
+
+    }
+
+    &.outline {
+
+        @include breakpoint() {
+
+            color: $blue;
+            background-color: $white;
+
+            @include box-shadow(inset 0px 0px 0px 2px $blue);
+
+        }
+
+    }
+
+}

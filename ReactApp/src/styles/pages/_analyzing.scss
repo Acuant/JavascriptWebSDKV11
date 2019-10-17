@@ -1,0 +1,68 @@
+.analyzing {
+
+    .analyzing_group {
+
+        .analyzing_container {
+
+            @media screen and (orientation:landscape) and (max-width: $tablet_small) {
+                width: 60%;
+                box-sizing: border-box;
+            }
+
+            .analyzing_animation_zone {
+
+                @include breakpoint() {
+
+                    position: relative;
+    
+                }
+
+                .id_background {
+
+                    @include breakpoint() {
+    
+                        display: block;
+    
+    
+                        width: 100%;
+                        height: auto;
+    
+                    }
+    
+                }
+    
+                &::before {
+    
+                    @include breakpoint() {
+    
+                        content: '';
+                        display: block;
+
+                        width: 64px;
+                        height: 64px;
+
+                        background-image: url('../assets/images/finder@2x.png');
+    
+                        background-repeat: no-repeat;
+                        background-attachment: scroll;
+                        background-position: center center;
+                        background-size: contain;
+    
+                        position: absolute;
+    
+                        // top: 40px;
+                        // left: 60px;
+    
+                        @include animation( search 4s ease-in-out infinite forwards 0s);
+    
+                    }
+    
+                }
+
+            }
+
+        }
+
+    }
+
+}

@@ -1,0 +1,62 @@
+.example_list {
+
+    @include breakpoint() {
+
+    }
+    @media screen and (orientation:landscape) and (max-width: $tablet_small) {
+
+        display: flex;
+        flex-direction: row;
+
+    }
+
+    .example {
+
+        @include breakpoint() {
+
+            display: flex;
+            flex-direction: row;
+
+            margin: 0 0 $gap 0;
+
+        }
+        @media screen and (orientation:landscape) and (max-width: $tablet_small) {
+
+            flex-grow: 1;
+            flex-shrink: 1;
+            flex-basis: 0;
+
+        }
+
+        .example_text {
+
+            @include breakpoint() {
+
+                padding: 0 0 0 $gap;
+
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+
+            }
+
+        }
+
+    }
+
+}
+
+.icon {
+
+    @include breakpoint() {
+
+        flex: none;
+
+        width: 32px;
+        height: 32px;
+
+        margin: 0 $gap 0 0;
+
+    }
+
+}

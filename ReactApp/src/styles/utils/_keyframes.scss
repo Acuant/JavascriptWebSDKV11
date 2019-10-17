@@ -1,0 +1,28 @@
+@include keyframes(search) {
+
+    0% {
+        top: 40px;
+        left: 60px;
+    }
+
+    25% {
+        top: 40px;
+        left: calc(100% - 120px);
+    }
+
+    50% {
+        top: calc(100% - 100px);
+        left: calc(100% - 120px);
+    }
+
+    75% {
+        top: calc(100% - 100px);
+        left: 60px;
+    }
+
+    100% {
+        top: 40px;
+        left: 60px;
+    }
+
+}

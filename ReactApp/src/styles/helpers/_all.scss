@@ -1,0 +1,5 @@
+.hidden {
+    @include breakpoint() {
+        display: none;
+    }
+}
