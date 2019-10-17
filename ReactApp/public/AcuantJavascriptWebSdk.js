@@ -1,4 +1,8 @@
+var config = {}
 
+if(typeof acuantConfig !== "undefined" && Object.keys(acuantConfig).length !== 0 && acuantConfig.constructor === Object){
+    config = acuantConfig
+}
 
 var Module = {
     onRuntimeInitialized: function() {
@@ -13,19 +17,17 @@ var Module = {
 var AcuantJavascriptWebSdk = undefined;
 
 const script = document.createElement("script");
-script.src = "AcuantImageProcessingService.js";
+script.src = (config.path || "") + "AcuantImageProcessingService.js";
 script.async = true;
 document.body.appendChild(script);
 
-var AcuantJavascriptWebSdk = undefined;
-
 function loadAcuantSdk(){
-    AcuantJavascriptWebSdk = (function(){
+    AcuantJavascriptWebSdk = (function(config){
         var svc = {
             start: function(){
                 if(!isWorkerStarted){
                     isWorkerStarted = true;
-                    Module.ccall("start");
+                    Module.ccall("start", null, ["string"], [(config.path || null)]);
                     addInternalCallback();
                 }
             },
@@ -212,6 +214,6 @@ function loadAcuantSdk(){
         }
     
         return svc;
-    })();
+    })(config);
 }
  

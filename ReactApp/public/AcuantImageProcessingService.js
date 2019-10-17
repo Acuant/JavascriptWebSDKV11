@@ -8995,10 +8995,10 @@ var ___cxx_global_var_init = Module["___cxx_global_var_init"] = function() {
   return Module["asm"]["___cxx_global_var_init"].apply(null, arguments)
 };
 
-var ___cxx_global_var_init_58 = Module["___cxx_global_var_init_58"] = function() {
+var ___cxx_global_var_init_62 = Module["___cxx_global_var_init_62"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["___cxx_global_var_init_58"].apply(null, arguments)
+  return Module["asm"]["___cxx_global_var_init_62"].apply(null, arguments)
 };
 
 var ___dynamic_cast = Module["___dynamic_cast"] = function() {
@@ -9107,6 +9107,12 @@ var ___stdout_write = Module["___stdout_write"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["___stdout_write"].apply(null, arguments)
+};
+
+var ___stpcpy = Module["___stpcpy"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["___stpcpy"].apply(null, arguments)
 };
 
 var ___strdup = Module["___strdup"] = function() {
@@ -9463,10 +9469,22 @@ var _start = Module["_start"] = function() {
   return Module["asm"]["_start"].apply(null, arguments)
 };
 
+var _strcat = Module["_strcat"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_strcat"].apply(null, arguments)
+};
+
 var _strcmp = Module["_strcmp"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_strcmp"].apply(null, arguments)
+};
+
+var _strcpy = Module["_strcpy"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_strcpy"].apply(null, arguments)
 };
 
 var _strlen = Module["_strlen"] = function() {
