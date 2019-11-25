@@ -20,7 +20,7 @@ function getDocInstance() {
                 }
             },
             "ImageCroppingExpectedSize": 0,
-            "ImageCroppingMode": 3,
+            "ImageCroppingMode": 0,
             "ManualDocumentType": null,
             "ProcessMode": 0,
             "SubscriptionId": process.env.REACT_APP_SUBSCRIPTION_ID
