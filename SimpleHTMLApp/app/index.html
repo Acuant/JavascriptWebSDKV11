@@ -1,0 +1,136 @@
+<html>
+<header>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</header>
+
+<body>
+    <div id="camera-btn" class="row" style="display:none;">
+        <div class="col-md-4"></div>
+      <div class="col-md-4">
+        <button class="btn btn-success" onClick="openCamera()">Open Camera</button>
+      </div>
+    </div>
+    <div id="camera" style="display:none;">
+        <video id="acuant-player" controls autoplay style="display:none;" playsinline></video>
+        <div class="row">
+          <div class="col-md-12 text-center">
+              <canvas id="acuant-video-canvas" width="100%" height="auto"></canvas>
+          </div>
+        </div>
+    </div>
+    <div id="result">
+        <div class="row text-center">
+            <div class="col-md-12">
+              <canvas id="result-canvas" width="auto" height="auto"></canvas>
+            </div>
+        </div>
+        <div class="row text-center">
+          <div class="col-md-4">
+            <label for="sharpness">Sharpness: </label><input id="sharpness" value="" />
+          </div>
+          <div class="col-md-4">
+            <label for="glare">Glare: </label><input id="glare" value="" />
+          </div>
+          <div class="col-md-4">
+            <label for="dpi">DPI: </label><input id="dpi" value="" />
+          </div>
+        </div>
+    </div>
+</body>
+
+
+<script>
+  const player = document.getElementById('acuant-player');
+
+  const videoCanvas = document.getElementById('acuant-video-canvas');
+  const videoContext = videoCanvas.getContext('2d');
+
+  const cameraBtn = document.getElementById('camera-btn');
+  const camera = document.getElementById('camera');
+  const result = document.getElementById('result');
+
+  const canvas = document.getElementById('result-canvas');
+  const context = canvas.getContext('2d');
+
+  const sharpnessInput =  document.getElementById('sharpness');
+  const glareInput =  document.getElementById('glare');
+  const dpiInput =  document.getElementById('dpi');
+
+  function onAcuantSdkLoaded() {
+    init();
+  }
+
+  function init() {
+    let base64Token = btoa("username:password");
+    AcuantJavascriptWebSdk.initialize(base64Token, "https://services.assureid.net", {
+      onSuccess: function () {
+        showCameraButton();
+        console.log("intialize succeded");
+      },
+      onFail: function () {
+        console.log("intialize failed");
+      }
+    });
+  }
+
+  function showCameraButton(){
+    cameraBtn.style.display = "block";
+  }
+
+  function closeCamera(){
+    camera.style.display = "none";
+    result.style.display = "block";
+    cameraBtn.style.display = "block";
+    AcuantCameraUI.end();
+  }
+
+  function openCamera(){
+    cameraBtn.style.display = "none";
+    result.style.display = "none";
+    camera.style.display = "block";
+    startCamera();
+  }
+
+  function startCamera() {
+    AcuantCameraUI.start((response) => {
+      drawImageOnResult(response);
+      closeCamera();
+    }, (error) => {
+      alert("Camera not supported\n" + error);
+      console.log(error);
+    });
+  }
+
+  function end() {
+    AcuantCameraUI.end();
+    AcuantJavascriptWebSdk.end();
+  }
+
+  function drawImageOnResult(result){
+  if(result && result.image){
+    var image = new Image();
+    image.onload = function () {
+      let width = result.image.width;
+      let height = result.image.height;
+
+      sharpnessInput.value = result.sharpness;
+      glareInput.value = result.glare;
+      dpiInput.value = result.dpi;
+
+      canvas.width = width;
+      canvas.height = height;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      window.scrollTo(0, window.screen.height);
+    };
+    image.src = result.image.data;
+  }
+}
+  
+const acuantConfig = {
+    path: "/webSdk/dist/"
+  }
+</script>
+<script async src="/webSdk/dist/AcuantJavascriptWebSdk.min.js"></script>
+</html>

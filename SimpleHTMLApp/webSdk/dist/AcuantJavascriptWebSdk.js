@@ -1,3 +1,1119 @@
+var AcuantCameraUI = (function(){
+  var player = null;
+
+  var videoCanvas = null;
+  var videoContext = null;
+
+  var tempCanvas = document.createElement("canvas");
+  var tempContext = tempCanvas.getContext('2d');
+
+  let svc = {
+      start: start,
+      end: end
+  };
+
+  var isPausing = false;
+  var isStarted = false;
+
+  var onDetectedResult = null;
+
+  function reset(){
+    onDetectedResult = null;
+    isPausing = false;
+    tempContext.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+  }
+
+  function end(){
+    if(AcuantCamera.isCameraSupported){
+      reset();  
+      player.removeEventListener('play', play, 0);
+      AcuantCamera.end();  
+    }
+    isStarted = false;
+  }
+
+  var detectedCount = 0;
+
+  function start(captureCb, errorCb){
+    if(!isStarted){
+      isStarted = true;
+      reset();
+      
+      if(AcuantCamera.isCameraSupported){
+        startCamera(captureCb, errorCb);
+      }
+      else{
+        startManualCamera(captureCb, errorCb);
+      }
+    }
+  }
+
+  function startCamera(captureCb, errorCb){
+    AcuantCamera.start((response) => {
+      onDetectedResult = response;
+    
+      if (onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.GOOD_DOCUMENT) {
+        detectedCount++;
+        if (detectedCount > 3) {
+          capture(captureCb);
+        }
+        else{
+          AcuantCamera.setRepeatFrameProcessor();
+        }
+      }
+      else {
+        detectedCount = 0
+        AcuantCamera.setRepeatFrameProcessor();
+      }
+    }, errorCb);
+    player = document.getElementById('acuant-player');
+    videoCanvas = document.getElementById('acuant-video-canvas');
+    videoContext = videoCanvas.getContext('2d');
+
+    player.addEventListener('play', play, 0);
+  }
+
+  function startManualCamera(captureCb, errorCb){
+    AcuantCamera.startManualCapture({
+      onCropped: function(response){
+        if(response){
+          captureCb(response);
+        }
+        else{
+          errorCb();
+        }
+      },
+      onCaptured: function(){
+        //captured
+      }
+    });
+  }
+
+  function capture(captureCb) {
+    onDetectedResult.state = -1;
+    AcuantCamera.triggerCapture((response) => {
+      if (response) {
+        if(document.fullscreenElement){
+          document.exitFullscreen().then(()=>{
+            AcuantCamera.setRepeatFrameProcessor();
+            detectedCount = 0;
+          })
+        }
+        else{
+            AcuantCamera.setRepeatFrameProcessor();
+            detectedCount = 0;
+        }
+        captureCb(response);
+      }
+      else {
+        AcuantCameraUI.reset();
+        AcuantCamera.setRepeatFrameProcessor();
+        detectedCount = 0;
+      }
+    });
+  }
+
+
+  function play(){
+    var $this = this; //cache
+    (function loop() {
+      if (!$this.paused && !$this.ended) {
+        if(onDetectedResult && onDetectedResult.state  === -1){
+          if(!isPausing){
+            isPausing = true;
+            tempCanvas.width = videoCanvas.width;
+            tempCanvas.height = videoCanvas.height;
+            tempContext.drawImage(player, 0, 0, tempCanvas.width, tempCanvas.height);
+          }
+          videoContext.drawImage(tempCanvas, 0, 0);
+          handleUi();
+        }
+        else{
+          videoContext.drawImage($this, 0, 0, videoCanvas.width, videoCanvas.height);
+          handleUi();
+        }
+
+        setTimeout(loop, 1000 / 60); // drawing at 60fps
+      }
+    })();
+  }
+
+function drawText(text) {
+  let dimension = getDimension();
+  let currentOrientation = window.orientation;
+  let measured = videoContext.measureText(text);
+
+  let offsetY = (Math.max(dimension.width, dimension.height) * 0.01);
+  let offsetX = (Math.max(dimension.width, dimension.height) * 0.02);
+
+  var x = (dimension.height / 2) - offsetX - (measured.width/3);
+  var y = -((dimension.width / 2) - offsetY);
+  var rotation = 90
+
+  if (currentOrientation !== 0) {
+    rotation = 0;
+    x = ((dimension.width / 2) - offsetY) - (measured.width/3);
+    y = (dimension.height / 2) - offsetX;
+  }
+
+  videoContext.rotate(rotation * Math.PI / 180);
+
+  videoContext.fillStyle = "rgba(0, 0, 0, 0.5)";
+  videoContext.fillRect(x - offsetY, y + offsetY, measured.width + offsetX, -(Math.max(dimension.width, dimension.height) * 0.05));
+
+  videoContext.font = (Math.ceil(Math.max(dimension.width, dimension.height) * 0.04) || 0) + "px Comic Sans MS";
+  videoContext.fillStyle = "#ffffff";
+  videoContext.fillText(text, x, y);
+  videoContext.restore();
+}
+
+function isSafari(){
+  var ua = navigator.userAgent.toLowerCase(); 
+  if (ua.indexOf('safari') != -1) { 
+      if (ua.indexOf('chrome') > -1) {
+          return false;
+      } else {
+          return true;
+      }
+  }
+  return false;
+}
+
+function getDimension(){
+  if(isSafari()){
+    return {
+      height: Math.min(document.body.clientHeight, videoCanvas.height),
+      width: Math.min(document.body.clientWidth, videoCanvas.width)
+    }
+  }
+  else{
+    return {
+      height: Math.min(window.innerHeight, videoCanvas.height),
+      width: Math.min(window.innerWidth, videoCanvas.width)
+    }
+  }
+}
+
+function drawCorners(point, index){
+  let currentOrientation = window.orientation;
+  let dimension = getDimension();
+  var offsetX = dimension.width * 0.08;
+  var offsetY = dimension.height * 0.07; 
+
+  if(currentOrientation !== 0){
+    offsetX = dimension.width * 0.07;
+    offsetY = dimension.height * 0.08;
+  }
+
+  switch(index.toString()){
+    case "1":
+      offsetX = -offsetX;
+      break;
+    case "2":
+      offsetX = -offsetX;
+      offsetY = -offsetY;
+      break;
+    case "3":
+      offsetY = -offsetY;
+      break;
+    default:
+      break;
+  }
+  drawCorner(point, offsetX, offsetY);
+}
+
+function handleUi() {
+  if(!onDetectedResult){
+    drawPoints("#000000");
+    drawText("ALIGN");
+  }
+  else if (onDetectedResult.state === -1) {
+    drawPoints("#00ff00");
+    drawText("CAPTURING");
+
+  }
+  else if (onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.GOOD_DOCUMENT) {
+    drawPoints("#ffff00");
+    drawText("HOLD STEADY");
+  }
+  else if (onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.SMALL_DOCUMENT) {
+    drawPoints("#ff0000");
+    drawText("MOVE CLOSER");
+  }
+  else {
+    drawPoints("#000000");
+    drawText("ALIGN");
+  }
+}
+
+function drawCorner(point, offsetX, offsetY){
+  videoContext.beginPath();
+  videoContext.moveTo(point.x, point.y);
+  videoContext.lineTo(point.x + offsetX, point.y)
+  videoContext.stroke();
+  videoContext.moveTo(point.x, point.y);
+  videoContext.lineTo(point.x, point.y + offsetY);
+  videoContext.stroke();
+}
+
+function drawPoints(fillStyle) {
+  let dimension = getDimension();
+  videoContext.lineWidth = (Math.ceil(Math.max(dimension.width, dimension.height) * 0.0025) || 1);
+  videoContext.strokeStyle = fillStyle;
+  if(onDetectedResult && onDetectedResult.points && (onDetectedResult.state === -1 || onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.GOOD_DOCUMENT)){
+    for (var i in onDetectedResult.points) {
+      drawCorners(onDetectedResult.points[i], i);
+    }
+  }
+  else{
+    var center = {
+      x: dimension.width/2,
+      y: dimension.height/2
+    }
+    var offsetX = dimension.width/3;
+    var offsetY = dimension.height/3.25;
+
+    let defaultCorners = [
+      { x: center.x - offsetX, y: center.y - offsetY },
+      { x: center.x + offsetX, y: center.y - offsetY },
+      { x: center.x + offsetX, y: center.y + offsetY }, 
+      { x: center.x - offsetX, y: center.y + offsetY}];
+
+      defaultCorners.forEach((point, i) => {
+        drawCorners(point, i);
+      });
+  }
+}
+
+return svc;
+
+})();
+
+var AcuantCamera = (function () {
+    var player = null;
+
+    var videoCanvas = null;
+    var videoContext = null;
+    var manualCaptureInput = null;
+
+    const hiddenCanvas = document.createElement('canvas');
+    const hiddenContext = hiddenCanvas.getContext('2d');
+
+    const DOCUMENT_STATE = {
+        NO_DOCUMENT: 0,
+        SMALL_DOCUMENT: 1,
+        GOOD_DOCUMENT: 2
+    };
+
+    const ACUANT_DOCUMENT_TYPE = {
+        NONE: 0,
+        ID: 1,
+        PASSPORT: 2
+    }
+
+    const SMALL_DOC_DPI_SCALE = 0.18229;
+    const LARGE_DOC_DPI_SCALE = 0.11719;
+    var onDetectCallback = null;
+    var onManualCaptureCallback = null;
+    var isStarted = false;
+
+    let svc = {
+        start: start,
+        startManualCapture: startManualCapture,
+        triggerCapture: triggerCapture,
+        end: endCamera,
+        DOCUMENT_STATE: DOCUMENT_STATE,
+        ACUANT_DOCUMENT_TYPE: ACUANT_DOCUMENT_TYPE,
+        isCameraSupported: 'mediaDevices' in navigator && mobileCheck(),
+        setRepeatFrameProcessor: setRepeatFrameProcessor
+    };
+
+    function mobileCheck() {
+        var check = false;
+        (function(a){if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino|android|ipad|playbook|silk/i.test(a)||/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0,4))) check = true;})(navigator.userAgent||navigator.vendor||window.opera);
+        return check || isIOS();
+    };
+
+    function isIOS(){
+        return /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    }
+
+    var userConfig = {
+        targetWidth: (window.innerWidth || 950),
+        targetHeight: (window.innerHeight),
+        frameScale: 0.75,
+        primaryConstraints: {
+            video: {
+                facingMode: {
+                    exact: "environment"
+                },
+                width: {ideal: 2560},
+                height: {ideal: 1440},
+            }
+        },
+        secondaryConstraints: {
+            video: {
+                facingMode: {
+                    exact: "environment"
+                },
+                width: {ideal: 1760},
+                height: {ideal: 990},
+            }
+        }
+
+    };
+
+    function startCamera(constraints, errorCallback) {
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then((stream) => {
+                isStarted = true;
+                player.srcObject = stream;
+                addEvents();
+                setRepeatFrameProcessor()
+                player.play();
+            })
+            .catch((error) => {
+                if(typeof(errorCallback) === "function"){
+                    errorCallback(error);
+                }
+            });
+    }
+
+    function requestFullScreen(constraints, errorCallback){
+        videoCanvas.requestFullscreen()
+            .then(function(){
+                startCamera(constraints, errorCallback)
+            })
+            .catch(function(error){
+                startCamera(constraints, errorCallback)
+            });
+
+    }
+
+    function start(callback, errorCallback){
+        player = document.getElementById('acuant-player');
+        videoCanvas = document.getElementById('acuant-video-canvas');
+
+        if(isStarted){
+            errorCallback("already started.");
+        }
+        else if(!player || !videoCanvas){
+            errorCallback("Missing HTML elements.")
+        }
+        else{
+            videoContext = videoCanvas.getContext('2d');
+            onDetectCallback = callback;
+            if(isSafari()){
+                startCamera(userConfig.primaryConstraints, errorCallback);
+            }
+            else{
+                requestFullScreen(userConfig.primaryConstraints, errorCallback);
+            }    
+        }
+    }
+
+    function startManualCapture(callback){
+        onManualCaptureCallback = callback;
+        manualCaptureInput = document.createElement("input");
+        manualCaptureInput.type = "file";
+        manualCaptureInput.capture = "environment";
+        manualCaptureInput.accept = "image/*";
+        manualCaptureInput.onchange = onManualCapture;
+        manualCaptureInput.click();
+    }
+
+    function arrayBufferToBase64( buffer ) {
+        var binary = '';
+        var bytes = new Uint8Array( buffer );
+        var len = bytes.byteLength;
+        for (var i = 0; i < len; i++) {
+            binary += String.fromCharCode( bytes[ i ] );
+        }
+        return window.btoa( binary );
+    }
+
+    function getOrientation(e) {
+        var view = new DataView(e.target.result);
+        if (view.getUint16(0, false) != 0xFFD8)
+        {
+            return -2;
+        }
+        var length = view.byteLength, offset = 2;
+        while (offset < length) 
+        {
+            if (view.getUint16(offset+2, false) <= 8) return -1;
+            var marker = view.getUint16(offset, false);
+            offset += 2;
+            if (marker == 0xFFE1) 
+            {
+                if (view.getUint32(offset += 2, false) != 0x45786966) 
+                {
+                    return -1;
+                }
+
+                var little = view.getUint16(offset += 6, false) == 0x4949;
+                offset += view.getUint32(offset + 4, little);
+                var tags = view.getUint16(offset, little);
+                offset += 2;
+                for (var i = 0; i < tags; i++)
+                {
+                    if (view.getUint16(offset + (i * 12), little) == 0x0112)
+                    {
+                        return view.getUint16(offset + (i * 12) + 8, little);
+                    }
+                }
+            }
+            else if ((marker & 0xFF00) != 0xFF00)
+            {
+                break;
+            }
+            else
+            { 
+                offset += view.getUint16(offset, false);
+            }
+        }
+        return -1;
+    }
+
+    function onManualCapture(event){
+        let file = event.target,
+            reader = new FileReader();
+
+        onManualCaptureCallback.onCaptured();
+
+        reader.onload = (e) => {
+            let captureOrientation = getOrientation(e);
+            let image = document.createElement('img');
+            image.src = 'data:image/jpeg;base64,' + arrayBufferToBase64(e.target.result);
+            image.onload = () => {
+                let canvas = document.createElement('canvas'),
+                    context = canvas.getContext('2d'),
+                    MAX_WIDTH = 2560,
+                    MAX_HEIGHT = 1920,
+                    width = image.width,
+                    height = image.height;
+    
+               var largerDimension = width > height ? width : height;
+    
+                if (largerDimension > MAX_WIDTH) {
+                    if (width < height) {
+                        var aspectRatio = height / width;
+                        MAX_HEIGHT = MAX_WIDTH;
+                        MAX_WIDTH = MAX_HEIGHT / aspectRatio;
+                    }
+                    else {
+                        var aspectRatio = width / height;
+                        MAX_HEIGHT = MAX_WIDTH / aspectRatio;
+                    }
+                } else {
+                    MAX_WIDTH = image.width;
+                    MAX_HEIGHT = image.height;
+                } 
+    
+               canvas.width = MAX_WIDTH;
+               canvas.height = MAX_HEIGHT;
+    
+                context = canvas.getContext('2d');
+                
+                context.mozImageSmoothingEnabled = false;
+                context.webkitImageSmoothingEnabled = false;
+                context.msImageSmoothingEnabled = false;
+                context.imageSmoothingEnabled = false;
+    
+                context.drawImage(image, 0, 0, MAX_WIDTH, MAX_HEIGHT);         
+    
+                 width = MAX_WIDTH;
+                 height = MAX_HEIGHT;
+        
+                var imgData = context.getImageData(0, 0, width, height);
+    
+                AcuantJavascriptWebSdk.crop(imgData, width, height,  
+                {
+                    onSuccess: function(result){
+                        result.image.data = toBase64(result.image, result.isPassport, false, captureOrientation);
+                        onManualCaptureCallback.onCropped(result);
+                    },
+    
+                    onFail: function(){
+                        onManualCaptureCallback.onCropped(null);
+                    }
+                });
+            }      
+        }
+        reader.readAsArrayBuffer(file.files[0]);
+    }
+
+    function isSafari(){
+        var ua = navigator.userAgent.toLowerCase(); 
+        if (ua.indexOf('safari') != -1) { 
+            if (ua.indexOf('chrome') > -1) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function endCamera(){
+        removeEvents();
+        isStarted = false;
+        player.srcObject.getTracks().forEach((t) => {
+            t.stop();
+        });
+    }
+
+    function scrollTop(){
+        setTimeout(function(){
+            window.scrollTo(0, 1);
+        }, 250);
+    }
+
+    function onOrientationChange() {
+        let onResize = function(){
+            videoContext.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
+    
+            if(isSafari()){
+
+                var scale = 0;
+                if(player.videoWidth > player.videoHeight){
+                    scale = (player.videoHeight/player.videoWidth);
+                }
+                else{
+                    scale = (player.videoWidth/player.videoHeight);
+                }
+
+                if(window.orientation === 0){
+                    let targetHeight = document.body.clientHeight;
+                    videoCanvas.width = targetHeight * scale;
+                    videoCanvas.height = targetHeight;
+                }
+                else{
+                    let targetHeight = document.body.clientWidth;
+                    videoCanvas.width = targetHeight;
+                    videoCanvas.height = targetHeight * scale;
+                }
+            }
+            else{
+                let targetWidth = window.innerWidth;
+                let targetHeight = window.innerHeight;
+
+                if(player.videoWidth > player.videoHeight){
+                    videoCanvas.width = targetWidth;
+                    videoCanvas.height = targetWidth * (player.videoHeight/player.videoWidth);
+                }
+                else{
+                    videoCanvas.width = targetHeight * (player.videoWidth/player.videoHeight);
+                    videoCanvas.height = targetHeight;
+                } 
+            }
+            scrollTop();
+            window.removeEventListener('resize', onResize);
+        }
+
+        window.addEventListener('resize', onResize);
+    }
+
+    function onLoadedMetaData(){
+        if(player.videoWidth + player.videoHeight < 1000){
+            endCamera();
+            startCamera(userConfig.secondaryConstraints);
+        }
+        else{
+            var targetWidth = window.innerWidth;
+            var targetHeight = window.innerHeight;
+            if(isSafari()){
+                if(player.videoWidth > player.videoHeight){
+                    targetHeight = document.body.clientWidth;
+
+                    videoCanvas.width = targetHeight;
+                    videoCanvas.height = targetHeight * (player.videoHeight/player.videoWidth);
+                }
+                else{
+                    targetHeight = document.body.clientHeight;
+
+                    videoCanvas.width = targetHeight * (player.videoWidth/player.videoHeight);
+                    videoCanvas.height = targetHeight;
+                } 
+
+            }
+            else{
+                if(player.videoWidth > player.videoHeight){
+                    videoCanvas.width = targetWidth;
+                    videoCanvas.height = targetWidth * (player.videoHeight/player.videoWidth);
+                }
+                else{
+                    videoCanvas.width = targetHeight * (player.videoWidth/player.videoHeight);
+                    videoCanvas.height = targetHeight;
+                } 
+            }  
+        }
+    }
+
+    function removeEvents(){
+        window.removeEventListener("orientationchange", onOrientationChange);
+        player.removeEventListener('loadedmetadata', onLoadedMetaData);
+    }
+
+    function addEvents() {
+        window.addEventListener("orientationchange", onOrientationChange, false);
+        player.addEventListener('loadedmetadata', onLoadedMetaData);
+    }
+
+    function setRepeatFrameProcessor() {
+        if(!isStarted){
+            return;
+        }
+
+        setTimeout(function () {
+            if(videoCanvas.width > (640 / userConfig.frameScale) && videoCanvas.width > (480 / userConfig.frameScale)){
+                hiddenCanvas.width = videoCanvas.width * userConfig.frameScale;
+                hiddenCanvas.height = videoCanvas.height * userConfig.frameScale;
+            }
+            else{
+                hiddenCanvas.width = videoCanvas.width;
+                hiddenCanvas.height = videoCanvas.height;
+            }
+            hiddenCanvas.width = videoCanvas.width * userConfig.frameScale
+            hiddenCanvas.height = videoCanvas.height * userConfig.frameScale
+            
+            hiddenContext.drawImage(player, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+            var imgData = hiddenContext.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
+
+            detect(imgData, hiddenCanvas.width, hiddenCanvas.height)
+        }, 0);
+    }
+
+    function detect(imgData, width, height) {
+        AcuantJavascriptWebSdk.detect(imgData, width, height, {
+            onSuccess: function (response) {
+                let targetDpi = response.type === ACUANT_DOCUMENT_TYPE.PASSPORT ? LARGE_DOC_DPI_SCALE : SMALL_DOC_DPI_SCALE;
+
+                response.points.forEach(p => {
+                    p.x = (p.x / userConfig.frameScale);
+                    p.y = (p.y / userConfig.frameScale);
+                });
+
+                if(response.type === ACUANT_DOCUMENT_TYPE.NONE){
+                    response.state = DOCUMENT_STATE.NO_DOCUMENT;
+                }
+                else if (response.dpi < (targetDpi * Math.max(hiddenCanvas.height, hiddenCanvas.width)) || !response.isCorrectAspectRatio) {
+                    response.state = DOCUMENT_STATE.SMALL_DOCUMENT;
+                }
+                else {
+                    response.state = DOCUMENT_STATE.GOOD_DOCUMENT;
+                }
+                onDetectCallback(response);
+            },
+            onFail: function () {
+                let response = {}
+                response.state = DOCUMENT_STATE.NO_DOCUMENT;
+                onDetectCallback(response);
+            }
+        });
+    }
+
+    function crop(imgData, width, height, callback) {
+        AcuantJavascriptWebSdk.crop(imgData, width, height, {
+            onSuccess: function (response) {
+                response.image.data = toBase64(response.image, response.isPassport, true);
+                hiddenCanvas.width = player.videoWidth * userConfig.frameScale;
+                hiddenCanvas.height = player.videoHeight * userConfig.frameScale;
+                callback(response);
+            },
+            onFail: function () {
+                hiddenCanvas.width = player.videoWidth * userConfig.frameScale;
+                hiddenCanvas.height = player.videoHeight * userConfig.frameScale;
+                callback();
+            }
+        });
+    }
+
+    function triggerCapture(callback) {
+        hiddenCanvas.width = player.videoWidth;
+        hiddenCanvas.height = player.videoHeight;
+        hiddenContext.drawImage(player, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        var imgData = hiddenContext.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        crop(imgData, hiddenCanvas.width, hiddenCanvas.height, callback);
+    }
+
+    function toBase64(img, isPassport, autoCapture, capturedOrientation){
+        let mCanvas = document.createElement('canvas');
+        mCanvas.width = img.width;
+        mCanvas.height = img.height;
+
+        let mContext = mCanvas.getContext('2d');
+        let mImgData = mContext.createImageData(img.width, img.height);
+
+        setImageData(mImgData.data, img.data);
+        mContext.putImageData(mImgData, 0, 0);
+
+        if(!isPassport){
+            if(autoCapture){
+                if(window.orientation === 0){
+                    mContext.rotate(180 * Math.PI / 180);
+                    mContext.drawImage(mCanvas, 0, 0, -mCanvas.width, -mCanvas.height);
+                }
+            }
+            else{
+                if(capturedOrientation === 3){
+                    mContext.rotate(180 * Math.PI / 180);
+                    mContext.drawImage(mCanvas, 0, 0, -mCanvas.width, -mCanvas.height);
+                }
+            }
+        }
+        
+        return mCanvas.toDataURL("image/jpeg");
+    }
+
+    function setImageData(imgData, src){
+        for(let i = 0; i < imgData.length; i++){
+            imgData[i] = src[i];
+        }
+    }
+
+    return svc;
+})();
+
+var config = {}
+
+if(typeof acuantConfig !== "undefined" && Object.keys(acuantConfig).length !== 0 && acuantConfig.constructor === Object){
+    config = acuantConfig
+}
+
+var Module = {
+    onRuntimeInitialized: function() {
+        loadAcuantSdk();
+
+        if(typeof onAcuantSdkLoaded === "function"){
+            onAcuantSdkLoaded();
+        }
+    }
+};
+
+var AcuantJavascriptWebSdk = undefined;
+
+function loadAcuantSdk(){
+    AcuantJavascriptWebSdk = (function(config){
+        var svc = {
+            start: function(){
+                if(!isWorkerStarted){
+                    isWorkerStarted = true;
+                    Module.ccall("start", null, ["string"], [(config.path || null)]);
+                    addInternalCallback();
+                }
+            },
+            
+            end: function(){
+                if(isWorkerStarted){
+                    Module.ccall("end");
+                    removeInternalCallback();
+                    isWorkerStarted = false;
+                }
+            },
+        
+            initialize: function(token, endpt, cb){
+                this.start();
+                addClientCallback(STORED_INIT_FUNC_KEY, cb);
+        
+                Module.ccall("initialize", null, ["string", "string", "number"], [token, endpt, storedCallbacks[STORED_INIT_FUNC_KEY]])
+            },
+            
+            crop: function(imgData, width, height, cb, includeSharpness = true, includeGlare = true){
+                if(isWorkerStarted && allocatedBytes === null){
+                    allocatedBytes = arrayToHeap(imgData.data);
+                    addClientCallback(STORED_CROP_FUNC_KEY, cb);
+        
+                    Module.ccall("crop", null, ["number", "number", "number", "number", "number", "number", "number"], [allocatedBytes.byteOffset, imgData.data.length, width, height, storedCallbacks[STORED_CROP_FUNC_KEY], includeSharpness, includeGlare])
+                } 
+                else{
+                    cb.onFail();
+                }
+            },
+            
+            detect: function(imgData, width, height, cb){
+                if(isWorkerStarted && allocatedDetectedBytes === null){
+                    allocatedDetectedBytes = arrayToHeap(imgData.data);
+                    addClientCallback(STORED_DETECT_FUNC_KEY, cb);
+
+                    Module.ccall("detect", null, ["number", "number", "number", "number", "number"], [allocatedDetectedBytes.byteOffset, imgData.data.length, width, height, storedCallbacks[STORED_DETECT_FUNC_KEY]])
+                } 
+                else{
+                    cb.onFail();
+                }
+            } 
+        };
+    
+        const STORED_INIT_FUNC_KEY = "init";
+        const STORED_CROP_FUNC_KEY = "crop";
+        const STORED_DETECT_FUNC_KEY = "detect";
+
+        const DPI_PASSPORT_SCALE_VALUE = 4.92;
+        const DPI_ID_SCALE_VALUE = 3.37;
+    
+        var isWorkerStarted = false;
+        var clientCallbacks = {};
+        var storedCallbacks = {};
+        var allocatedBytes = null;
+        var allocatedDetectedBytes = null;
+
+        function addInternalCallback(){
+            addCallback(STORED_INIT_FUNC_KEY, onInitialize, "vi");
+            addCallback(STORED_CROP_FUNC_KEY, onCrop, "viiiff");
+            addCallback(STORED_DETECT_FUNC_KEY, onDetect, "viiiiiiiii");
+
+        }
+    
+        function removeInternalCallback(){
+            removeCallback(STORED_INIT_FUNC_KEY);
+            removeCallback(STORED_CROP_FUNC_KEY);
+            removeCallback(STORED_DETECT_FUNC_KEY);
+        }
+
+        function onDetect(type, p1_x, p1_y, p2_x, p2_y, p3_x, p3_y, p4_x, p4_y){
+            var cb = clientCallbacks[STORED_DETECT_FUNC_KEY];
+            
+            freeArray(allocatedDetectedBytes);
+            allocatedDetectedBytes = null; 
+
+            if(cb){
+                if(type == -1){
+                    cb.onFail()
+                }
+                else{
+                    let dimensions = getDimensions(p1_x, p1_y, p2_x, p2_y, p3_x, p3_y, p4_x, p4_y),
+                        correctAspectRatio = isCorrectAspectRatio(dimensions.width/dimensions.height, type),
+                        dpi = calculateDpi(dimensions.width, dimensions.height, type == 2),
+                        mappedPoints = mapPoints([{
+                            x:p1_x,
+                            y:p1_y
+                        },
+                        {
+                            x:p2_x,
+                            y:p2_y
+                        },
+                        {
+                            x:p3_x,
+                            y:p3_y
+                        },
+                        {
+                            x:p4_x,
+                            y:p4_y
+                        }]);
+
+                    cb.onSuccess({
+                        type:type,
+                        dimensions: dimensions,
+                        dpi: dpi,
+                        isCorrectAspectRatio: correctAspectRatio,
+                        points: mappedPoints
+                    })
+                }
+            }
+        }
+
+        function getCorners(corners, c1, c2){
+            if(c1.x < c2.x && c1.y < c2.y){
+                corners[0] = c1;
+                corners[2] = c2;
+            }
+            else if(c1.x > c2.x && c1.y > c2.y){
+                corners[0] = c2;
+                corners[2] = c1;
+            }
+            else if(c1.x > c2.x && c1.y < c2.y){
+                corners[1] = c1;
+                corners[3] = c2;
+            }
+            else{
+                corners[1] = c2;
+                corners[3] = c1;
+            }
+            return corners;
+        }
+
+        function mapPoints(points){
+            var mappedPoints = [-1, -1, -1, -1];
+            if(points && points.length === 4){
+                getCorners(mappedPoints, points[0], points[2]);
+                getCorners(mappedPoints, points[1], points[3]);        
+            }
+            return mappedPoints;
+        }
+
+        function getDistance(p1, p2){
+            return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+        }
+
+        function getDimensions(p1_x, p1_y, p2_x, p2_y, p3_x, p3_y, p4_x, p4_y){
+            let p1 = {
+                x: p1_x,
+                y: p1_y
+            },
+            p2 =  {
+                x: p2_x,
+                y: p2_y
+            },
+            p3 =  {
+                x: p3_x,
+                y: p3_y
+            },
+            p4 =  {
+                x: p4_x,
+                y: p4_y
+            },
+            d1 = getDistance(p1, p2),
+            d2 = getDistance(p2, p3),
+            d3 = getDistance(p3, p4),
+            d4 = getDistance(p4, p1);
+
+            let avgSize1 = (d1 + d3) / 2
+            let avgSize2 = (d2 + d4) / 2
+            
+            if(avgSize1 > avgSize2){
+                return {
+                    width: avgSize1, 
+                    height: avgSize2
+                }
+            }
+            else{
+                return {
+                    width: avgSize2, 
+                    height: avgSize1
+                }
+            }
+        }
+
+        function isCorrectAspectRatio(aspectRatio, cardType){
+            var isCorrectAspectRatio = false
+            let tolerancePercentage = 5.0
+            let expectedPassportAspectRatio = 1.42
+            let expectedID1AspectRatio = 1.58870
+            let expectedID2AspectRatio  = 1.41915551
+            if(cardType == 2){
+                let min = ((100-tolerancePercentage)/100)*expectedPassportAspectRatio
+                let max = ((100+tolerancePercentage)/100)*expectedPassportAspectRatio
+                if(aspectRatio >= min && aspectRatio <= max){
+                    isCorrectAspectRatio = true
+                }
+            }
+            else if(cardType == 1){
+                let min = ((100-tolerancePercentage)/100)*expectedID1AspectRatio
+                let max = ((100+tolerancePercentage)/100)*expectedID1AspectRatio
+                if(aspectRatio >= min && aspectRatio <= max){
+                    isCorrectAspectRatio = true
+                }
+            }
+            return isCorrectAspectRatio
+        }
+    
+        function onInitialize(isSuccess){
+            var cb = clientCallbacks[STORED_INIT_FUNC_KEY];
+            if(cb){
+                if(isSuccess == 1){
+                    cb.onSuccess();
+                }
+                else{
+                    cb.onFail();
+                }
+            }
+        }
+    
+        function onCrop(width, height, isPassport, rawGlare, rawSharpness){
+            var cb = clientCallbacks[STORED_CROP_FUNC_KEY];
+
+            freeArray(allocatedBytes);
+            allocatedBytes = null;
+
+            if(cb){
+                if(width != -1 && height != -1 && isPassport != -1){
+                    let imgData = getImageData(width, height),
+                        dpi = calculateDpi(width, height, isPassport),
+                        sharpness = rawSharpness * 100,
+                        glare = rawGlare * 100;
+        
+                    cb.onSuccess({ 
+                        image: { 
+                            data: imgData,
+                            width,
+                            height
+                        }, 
+                        glare, 
+                        sharpness,
+                        isPassport,
+                        dpi
+                    });
+                }
+                else{
+                    cb.onFail();
+                }
+            }
+
+            Module.ccall("release");
+        }
+    
+        function calculateDpi(width, height, isPassport){
+            let longerSide = width > height ? width : height;
+            let scaleValue = isPassport ? DPI_PASSPORT_SCALE_VALUE : DPI_ID_SCALE_VALUE;
+    
+            return Math.round(longerSide/scaleValue);
+        }
+
+        function getImageData(width, height){
+            var rgbData = Module.getBytes();
+            let mappedData = [];
+        
+            var srcIndex=0, dstIndex=0, curPixelNum=0;
+                                
+            for (curPixelNum=0; curPixelNum<width*height;  curPixelNum++)
+            {
+                mappedData[dstIndex] = rgbData[srcIndex];        // r
+                mappedData[dstIndex+1] = rgbData[srcIndex+1];    // g
+                mappedData[dstIndex+2] = rgbData[srcIndex+2];    // b
+                mappedData[dstIndex+3] = 255; // 255 = 0xFF - constant alpha, 100% opaque
+                srcIndex += 3;
+                dstIndex += 4;
+            }
+
+            return mappedData;
+        }
+    
+        function addClientCallback(key, fn){
+            clientCallbacks[key] = fn;
+        }
+    
+        function addCallback(key, fn, fnParams){
+            let exisiting = storedCallbacks[key];
+            if(!exisiting){
+                storedCallbacks[key] = Module.addFunction(fn, fnParams);
+            }
+        }
+    
+        function removeCallback(key){
+            let fn = storedCallbacks[key];
+            if(fn){
+                Module.removeFunction(fn);
+                storedCallbacks[key] = null;
+            }
+        }
+    
+        function freeArray(input){
+            Module._free(input.byteOffset);
+            input = null;
+        }
+    
+        function arrayToHeap(typedArray){
+            var numBytes = typedArray.length * typedArray.BYTES_PER_ELEMENT;
+            var ptr = Module._malloc(numBytes);
+            var heapBytes = new Uint8Array(Module.HEAPU8.buffer, ptr, numBytes);
+            heapBytes.set(new Uint8Array(typedArray.buffer));
+            return heapBytes;
+        }
+    
+        return svc;
+    })(config);
+}
+ 
 // Copyright 2010 The Emscripten Authors.  All rights reserved.
 // Emscripten is available under two separate licenses, the MIT license and the
 // University of Illinois/NCSA Open Source License.  Both these licenses can be
@@ -1219,11 +2335,11 @@ function updateGlobalBufferViews() {
 
 
 var STATIC_BASE = 1024,
-    STACK_BASE = 17600,
+    STACK_BASE = 17712,
     STACKTOP = STACK_BASE,
-    STACK_MAX = 5260480,
-    DYNAMIC_BASE = 5260480,
-    DYNAMICTOP_PTR = 17568;
+    STACK_MAX = 5260592,
+    DYNAMIC_BASE = 5260592,
+    DYNAMICTOP_PTR = 17680;
 
 assert(STACK_BASE % 16 === 0, 'stack must start aligned');
 assert(DYNAMIC_BASE % 16 === 0, 'heap must start aligned');
@@ -1724,8 +2840,8 @@ Module['asm'] = function(global, env, providedBuffer) {
   ;
   // import table
   env['table'] = wasmTable = new WebAssembly.Table({
-    'initial': 480,
-    'maximum': 480,
+    'initial': 496,
+    'maximum': 496,
     'element': 'anyfunc'
   });
   // With the wasm backend __memory_base and __table_base and only needed for
@@ -1751,7 +2867,7 @@ var ASM_CONSTS = [];
 
 
 
-// STATICTOP = STATIC_BASE + 16576;
+// STATICTOP = STATIC_BASE + 16688;
 /* global initializers */  __ATINIT__.push({ func: function() { globalCtors() } });
 
 
@@ -1762,7 +2878,7 @@ var ASM_CONSTS = [];
 
 
 /* no memory initializer */
-var tempDoublePtr = 17584
+var tempDoublePtr = 17696
 assert(tempDoublePtr % 8 == 0);
 
 function copyTempFloat(ptr) { // functions, because inlining this code increases code size too much
@@ -4047,6 +5163,7 @@ function nullFunc_viiiff(x) { abortFnPtrError(x, 'viiiff'); }
 function nullFunc_viiii(x) { abortFnPtrError(x, 'viiii'); }
 function nullFunc_viiiii(x) { abortFnPtrError(x, 'viiiii'); }
 function nullFunc_viiiiii(x) { abortFnPtrError(x, 'viiiiii'); }
+function nullFunc_viiiiiiiii(x) { abortFnPtrError(x, 'viiiiiiiii'); }
 
 function jsCall_ii(index,a1) {
     return functionPointers[index](a1);
@@ -4100,6 +5217,10 @@ function jsCall_viiiiii(index,a1,a2,a3,a4,a5,a6) {
     functionPointers[index](a1,a2,a3,a4,a5,a6);
 }
 
+function jsCall_viiiiiiiii(index,a1,a2,a3,a4,a5,a6,a7,a8,a9) {
+    functionPointers[index](a1,a2,a3,a4,a5,a6,a7,a8,a9);
+}
+
 var asmGlobalArg = {};
 
 var asmLibraryArg = {
@@ -4120,6 +5241,7 @@ var asmLibraryArg = {
   "nullFunc_viiii": nullFunc_viiii,
   "nullFunc_viiiii": nullFunc_viiiii,
   "nullFunc_viiiiii": nullFunc_viiiiii,
+  "nullFunc_viiiiiiiii": nullFunc_viiiiiiiii,
   "jsCall_ii": jsCall_ii,
   "jsCall_iidiiii": jsCall_iidiiii,
   "jsCall_iii": jsCall_iii,
@@ -4133,6 +5255,7 @@ var asmLibraryArg = {
   "jsCall_viiii": jsCall_viiii,
   "jsCall_viiiii": jsCall_viiiii,
   "jsCall_viiiiii": jsCall_viiiiii,
+  "jsCall_viiiiiiiii": jsCall_viiiiiiiii,
   "___cxa_begin_catch": ___cxa_begin_catch,
   "___cxa_pure_virtual": ___cxa_pure_virtual,
   "___cxa_uncaught_exceptions": ___cxa_uncaught_exceptions,
@@ -8995,10 +10118,10 @@ var ___cxx_global_var_init = Module["___cxx_global_var_init"] = function() {
   return Module["asm"]["___cxx_global_var_init"].apply(null, arguments)
 };
 
-var ___cxx_global_var_init_62 = Module["___cxx_global_var_init_62"] = function() {
+var ___cxx_global_var_init_67 = Module["___cxx_global_var_init_67"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["___cxx_global_var_init_62"].apply(null, arguments)
+  return Module["asm"]["___cxx_global_var_init_67"].apply(null, arguments)
 };
 
 var ___dynamic_cast = Module["___dynamic_cast"] = function() {
@@ -9199,6 +10322,12 @@ var _decfloat = Module["_decfloat"] = function() {
   return Module["asm"]["_decfloat"].apply(null, arguments)
 };
 
+var _detect = Module["_detect"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_detect"].apply(null, arguments)
+};
+
 var _dispose_chunk = Module["_dispose_chunk"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -9367,6 +10496,12 @@ var _onCroppped = Module["_onCroppped"] = function() {
   return Module["asm"]["_onCroppped"].apply(null, arguments)
 };
 
+var _onDetected = Module["_onDetected"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_onDetected"].apply(null, arguments)
+};
+
 var _onInitialized = Module["_onInitialized"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -9421,10 +10556,16 @@ var _release = Module["_release"] = function() {
   return Module["asm"]["_release"].apply(null, arguments)
 };
 
-var _reset = Module["_reset"] = function() {
+var _resetCrop = Module["_resetCrop"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_reset"].apply(null, arguments)
+  return Module["asm"]["_resetCrop"].apply(null, arguments)
+};
+
+var _resetDetect = Module["_resetDetect"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_resetDetect"].apply(null, arguments)
 };
 
 var _sbrk = Module["_sbrk"] = function() {
@@ -9641,6 +10782,12 @@ var dynCall_viiiiii = Module["dynCall_viiiiii"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["dynCall_viiiiii"].apply(null, arguments)
+};
+
+var dynCall_viiiiiiiii = Module["dynCall_viiiiiiiii"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["dynCall_viiiiiiiii"].apply(null, arguments)
 };
 ;
 

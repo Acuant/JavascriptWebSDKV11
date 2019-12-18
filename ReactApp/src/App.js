@@ -11,6 +11,8 @@ import Results from './screens/Results/index';
 import Error from './screens/Error/index';
 import "./styles/main.css";
 import ProcessedImageResult from "./screens/ProcessedImageResult";
+import AcuantReactCamera from "./screens/AcuantReactCamera";
+
 /*
 global Raven
  */
@@ -50,13 +52,12 @@ class App extends Component {
             this.initialize();
         }.bind(this);
 
-        const script = document.createElement("script");
-        script.src = "AcuantJavascriptWebSdk.js";
-        script.async = true;
-      
-        document.body.appendChild(script);
+        const sdk = document.createElement("script");
+        sdk.src = "AcuantJavascriptWebSdk.min.js";
+        sdk.async = true;
 
-     
+      
+        document.body.appendChild(sdk);
     }
 
     componentDidCatch(error, errorInfo) {
@@ -109,6 +110,7 @@ class App extends Component {
                             <Switch>
                                 <Redirect exact from="/" to="/capture/photo"/>
                                 <Route path="/capture/photo" exact component={CapturePhoto}/>
+                                <Route path="/capture/camera" exact component={AcuantReactCamera}/>
                                 <Route path="/photo/confirm" exact component={ProcessedImageResult} />
                                 <Route path="/capture/selfie" exact component={CaptureSelfie}/>
                                 <Route path='/results' component={Results}/>

@@ -4,7 +4,6 @@ import { connect } from "react-redux";
 import Header from "./Header";
 import { decrementSidesLeft, setCardOrientation, setCardType } from "./actions/idPropertiesActions";
 import { setInstanceID, submitBackID, submitFrontID } from "./actions/configActions";
-import ApiService from "../services/api/api";
 import Processing from "./Processing";
 
 class CapturePhoto extends Component {
@@ -15,120 +14,11 @@ class CapturePhoto extends Component {
             inputValue: null,
             processing: false        
         }
-        this.textInput = React.createRef();
     }
 
     isIEorEDGE() {
         return navigator.appName === 'Microsoft Internet Explorer' || (navigator.appName === "Netscape" && navigator.appVersion.indexOf('Edge') > -1);
     }
-
-    processImage(event) {
-        let file = event.target,
-            reader = new FileReader();
-
-        this.setState({
-            processing: true
-        });
-
-        if (!file) {
-            this.setState({
-                processing: false
-            });
-            return;
-        }
-        window.scrollTo(0, 0)
-
-        if (this.isIEorEDGE()) {
-            this.sendImageToAPI(file.files[0]);
-            return;
-        }
-
-        reader.onload = function(e){
-            if (window.File && window.FileReader && window.FileList && window.Blob) {
-                let image = document.createElement('img');
-                image.src = e.target.result;
-                image.onload = () => {
-                    let canvas = document.createElement('canvas'),
-                        context = canvas.getContext('2d'),
-                       MAX_WIDTH = 2560,
-                       MAX_HEIGHT = 1920,
-                        width = image.width,
-                        height = image.height;
-
-                      //context.drawImage(image, 0, 0);
-
-                   var largerDimension = width > height ? width : height;
-
-                    if (largerDimension > MAX_WIDTH) {
-                        if (width < height) {
-                            var aspectRatio = height / width;
-                            MAX_HEIGHT = MAX_WIDTH;
-                            MAX_WIDTH = MAX_HEIGHT / aspectRatio;
-                        }
-                        else {
-                            var aspectRatio = width / height;
-                            MAX_HEIGHT = MAX_WIDTH / aspectRatio;
-                        }
-                    } else {
-                        MAX_WIDTH = image.width;
-                        MAX_HEIGHT = image.height;
-                    } 
-
-                   canvas.width = MAX_WIDTH;
-                   canvas.height = MAX_HEIGHT;
-
-                    // canvas.width = width;
-                    // canvas.height = height;
-
-                    context = canvas.getContext('2d');
-                    
-                    context.mozImageSmoothingEnabled = false;
-                    context.webkitImageSmoothingEnabled = false;
-                    context.msImageSmoothingEnabled = false;
-                    context.imageSmoothingEnabled = false;
-
-                    context.drawImage(image, 0, 0, MAX_WIDTH, MAX_HEIGHT);         
-
-                     width = MAX_WIDTH;
-                     height = MAX_HEIGHT;
-
-                    var imgData = context.getImageData(0, 0, width, height);
-
-                    window.AcuantJavascriptWebSdk.crop(imgData, width, height,  
-                    {
-                        onSuccess: function(result){
-                            if(result.dpi < 300){
-                                this.props.history.push({pathname: '/error/lowresolution', state: {retryLastStep: true}});
-                            }
-                            else{
-                                var isBlurry=false,
-                                    hasGlare = false
-                                if (result.sharpness < 50 && process.env.REACT_APP_SHARPNESS_METRIC_ENABLED === 'true') {
-                                    isBlurry = true;
-                                }
-                                if (result.glare < 50 && process.env.REACT_APP_GLARE_METRIC_ENABLED === 'true') {
-                                    hasGlare = true;
-                                }
-
-                                this.props.history.push('/photo/confirm', {
-                                    blurry: isBlurry,
-                                    hasGlare: hasGlare,
-                                    cardImage: result.image.data
-                                });
-                            }
-                        }.bind(this),
-
-                        onFail: function(){
-                            this.props.history.push('/error/default');
-                        }.bind(this)
-                    });
-                }
-            }
-        }.bind(this);
-
-        reader.readAsDataURL(file.files[0]);
-    }
-
 
     componentDidMount() {
         if (!this.props.instanceID) {
@@ -136,7 +26,7 @@ class CapturePhoto extends Component {
         }
         if (this.props.location && this.props.location.state) {
             if (this.props.location.state.isRetry) {
-                this.textInput.current.click();
+                this.navigateCamera();
             }
         }
     }
@@ -154,6 +44,15 @@ class CapturePhoto extends Component {
             default:
                 return 'ID card';
         }
+    }
+
+    openCamera(type){
+        this.props.setCardType(type);
+        this.navigateCamera();
+    }
+
+    navigateCamera(){
+        this.props.history.push('/capture/camera');
     }
 
     render() {
@@ -183,16 +82,6 @@ class CapturePhoto extends Component {
                             {this.props.sidesLeft === 1 &&
                                 <img alt='idscango' className={'capture'} src={this.props.frontSubmitted ? require('../assets/images/card_back@3x.png') : require('../assets/images/illustration1@3x.png')} />
                             }
-
-                            <input type="file" accept="image/*" capture="environment" id="camera"
-                                   name={'camera'}
-                                value={this.state.inputValue}
-                                className='hidden'
-                                on
-                                onChange={this.processImage.bind(this)}
-                                ref={this.textInput}
-                            />
-
                         </div>
 
                         <div className="wrapper column capture_controls">
@@ -200,12 +89,12 @@ class CapturePhoto extends Component {
                             {this.props.sidesLeft === 2 &&
                                 <Fragment>
                                     {process.env.REACT_APP_IDPASSPORT_ENABLED === 'true' &&
-                                        <label htmlFor="camera" className='btn' onClick={() => this.props.setCardType(1)}>
+                                        <label className='btn' onClick={() => this.openCamera(1)}>
                                             <p className={'buttonBgText'}>Capture ID/Passport</p>
                                         </label>
                                     }
                                     {process.env.REACT_APP_MEDICAL_CARD_ENABLED === 'true' &&
-                                        <label htmlFor="camera" className='btn' onClick={() => this.props.setCardType(2)}>
+                                        <label className='btn' onClick={() => this.openCamera(2)}>
                                             <p className={'buttonBgText'}>Capture Medical Card</p>
                                         </label>
                                     }
@@ -213,7 +102,7 @@ class CapturePhoto extends Component {
                             }
 
                             {this.props.sidesLeft === 1 &&
-                                <label htmlFor="camera" className={'btn'}>
+                                <label className={'btn'} onClick={() => this.openCamera(this.props.cardType)} >
                                     <p className='buttonBgText'>Capture {this.getOrientationCopy()} of {this.getCardTypeCopy()}</p>
                                 </label>
                             }
