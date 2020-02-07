@@ -42,6 +42,15 @@ class IDPassport extends Component {
         this.props.history.push('/');
     }
 
+    appendIfNotEmpty(str){
+        if(str && str.length > 0){
+            return ", " + str
+        }
+        else{
+            return ""
+        }
+    }
+
     render() {
         if (!this.props.resultData) {
             return <Processing/>
@@ -81,6 +90,19 @@ class IDPassport extends Component {
                                 <div className='row'>
                                     <div className='type'>Document Authentication</div>
                                     <div className='data'>{this.props.resultData.Authentication}</div>
+                                </div>
+                                }
+                                {this.props.liveness &&
+                                  <div className='row'>
+                                    <div className='type'>Liveness: </div>
+                                    { 
+                                        this.props.liveness.LivenessResult && 
+                                        <div className='data'>{this.props.liveness.LivenessResult.LivenessAssessment}{this.appendIfNotEmpty(this.props.liveness.ErrorCode)}{this.appendIfNotEmpty(this.props.liveness.Error)}</div>
+                                    }
+                                    {
+                                        (!this.props.liveness.LivenessResult) && 
+                                        <div className='data'>{this.props.liveness.ErrorCode}{this.appendIfNotEmpty(this.props.liveness.Error)}</div>
+                                    }
                                 </div>
                                 }
                                 {this.props.faceMatch !== null &&
@@ -147,6 +169,7 @@ function mapStateToProps(state) {
     return {
         instanceID: state.config.instanceID,
         faceMatch: state.processedData.faceMatch,
+        liveness: state.processedData.liveness,
         resultData: state.processedData.result,
         cardType: state.idProperties.cardType
     }

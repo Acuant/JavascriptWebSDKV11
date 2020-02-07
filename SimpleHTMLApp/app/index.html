@@ -2,41 +2,86 @@
 <header>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-</header>
 
+    <style>
+    .loader {
+      border: 16px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 16px solid #3498db;
+      width: 120px;
+      height: 120px;
+      -webkit-animation: spin 2s linear infinite; /* Safari */
+      animation: spin 2s linear infinite;
+    }
+
+    /* Safari */
+    @-webkit-keyframes spin {
+      0% { -webkit-transform: rotate(0deg); }
+      100% { -webkit-transform: rotate(360deg); }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+</style>
+</header>
 <body>
-    <div id="camera-btn" class="row" style="display:none;">
-        <div class="col-md-4"></div>
-      <div class="col-md-4">
-        <button class="btn btn-success" onClick="openCamera()">Open Camera</button>
+  <div id="acuant-loader" class="row text-center" style="display:none;">
+    <div class="col-md-12">
+        <div class="loader" style="margin: 10% 0 0 45%"></div>
+    </div>
+  </div>
+  <div id="camera-btn" class="row text-center" style="display:none; margin:10% 0 10% 0">
+    <div class="col-md-6 btn-group">
+      <button class="btn btn-success mr-2" onClick="openFrontCamera()">Passive Liveness</button>
+      <button class="btn btn-success mr-2" onClick="openCamera()">Open Camera</button>
+    </div>
+  </div>
+  <div id="camera" style="display:none;">
+    <video id="acuant-player" controls autoplay style="display:none;" playsinline></video>
+    <div class="row">
+      <div class="col-md-12 text-center">
+        <canvas id="acuant-video-canvas" width="100%" height="auto"></canvas>
       </div>
     </div>
-    <div id="camera" style="display:none;">
-        <video id="acuant-player" controls autoplay style="display:none;" playsinline></video>
-        <div class="row">
-          <div class="col-md-12 text-center">
-              <canvas id="acuant-video-canvas" width="100%" height="auto"></canvas>
-          </div>
-        </div>
+  </div>
+  <div id="result-face" style="display:none;">
+    <div class="row from-group text-center mt-2">
+      <label class="col-md-2" for="face-score">Score: </label>
+      <input class="form-control col-md-3" id="face-score" value="" />
+      <label class="col-md-2" for="face-result">Result: </label>
+      <input class="form-control col-md-3" id="face-result" value="" />
     </div>
-    <div id="result">
-        <div class="row text-center">
-            <div class="col-md-12">
-              <canvas id="result-canvas" width="auto" height="auto"></canvas>
-            </div>
-        </div>
-        <div class="row text-center">
-          <div class="col-md-4">
-            <label for="sharpness">Sharpness: </label><input id="sharpness" value="" />
-          </div>
-          <div class="col-md-4">
-            <label for="glare">Glare: </label><input id="glare" value="" />
-          </div>
-          <div class="col-md-4">
-            <label for="dpi">DPI: </label><input id="dpi" value="" />
-          </div>
-        </div>
+    <div class="row from-group text-center mt-2">
+      <label class="col-md-2" for="face-error-code">Error Code: </label>
+      <input class="form-control col-md-3" id="face-error-code" value="" />
+      <label class="col-md-2" for="face-error-description">Description: </label>
+      <textarea class="form-control col-md-3" id="face-error-description" value=""></textarea>
     </div>
+    <div class="row from-group text-center">
+      <label class="col-md-2" for="face-transaction">TransactionId: </label>
+      <input class="form-control col-md-3" id="face-transaction" value="" />
+    </div>
+  </div>
+  <div id="result-id" style="display:none;">
+    <div class="row text-center">
+      <div class="col-md-12">
+        <canvas id="result-canvas" width="auto" height="auto"></canvas>
+      </div>
+    </div>
+    <div class="row text-center">
+      <div class="col-md-4">
+        <label for="sharpness">Sharpness: </label><input id="sharpness" value="" />
+      </div>
+      <div class="col-md-4">
+        <label for="glare">Glare: </label><input id="glare" value="" />
+      </div>
+      <div class="col-md-4">
+        <label for="dpi">DPI: </label><input id="dpi" value="" />
+      </div>
+    </div>
+  </div>
 </body>
 
 
@@ -48,22 +93,72 @@
 
   const cameraBtn = document.getElementById('camera-btn');
   const camera = document.getElementById('camera');
-  const result = document.getElementById('result');
+  const result = document.getElementById('result-id');
+
+  const resultFace = document.getElementById('result-face');
 
   const canvas = document.getElementById('result-canvas');
   const context = canvas.getContext('2d');
 
-  const sharpnessInput =  document.getElementById('sharpness');
-  const glareInput =  document.getElementById('glare');
-  const dpiInput =  document.getElementById('dpi');
+  const sharpnessInput = document.getElementById('sharpness');
+  const glareInput = document.getElementById('glare');
+  const dpiInput = document.getElementById('dpi');
+
+  const loader = document.getElementById('acuant-loader');
+
+  const Credential = {
+    liveness_endpoint: "",
+    id_endpoint: "",
+    acuant_username: "",
+    acuant_password: "",
+    acuant_subscriptionId: ""
+  }
 
   function onAcuantSdkLoaded() {
     init();
   }
 
+  function openFrontCamera() {
+    cameraBtn.style.display = "none";
+    result.style.display = "none";
+    resultFace.style.display = "none";
+    AcuantPassiveLiveness.startSelfieCapture(onCapture);
+  }
+  function setUIValues(id, value) {
+    let el = document.getElementById(id);
+    el.value = value;
+  }
+
+  function onCapture(image) {
+    loader.style.display = "block";
+    AcuantPassiveLiveness.postLiveness({
+      endpoint: Credential.liveness_endpoint,
+      token: btoa(Credential.acuant_username + ':' + Credential.acuant_password),
+      image: image,
+      subscriptionId: Credential.acuant_subscriptionId
+    }, function (result) {
+      cameraBtn.style.display = "block";
+      if (result) {
+        if (result.LivenessResult) {
+          setUIValues("face-score", result.LivenessResult.Score);
+          setUIValues("face-result", result.LivenessResult.LivenessAssessment);
+        }
+        else{
+          setUIValues("face-score", "");
+          setUIValues("face-result", "");
+        }
+        setUIValues("face-transaction", result.TransactionId);
+        setUIValues("face-error-code", result.ErrorCode);
+        setUIValues("face-error-description", result.Error);
+      }
+      resultFace.style.display = "block";
+      loader.style.display="none";
+    })
+  }
+
   function init() {
-    let base64Token = btoa("username:password");
-    AcuantJavascriptWebSdk.initialize(base64Token, "https://services.assureid.net", {
+    let base64Token = btoa(Credential.acuant_username + ':' + Credential.acuant_password);
+    AcuantJavascriptWebSdk.initialize(base64Token, Credential.id_endpoint, {
       onSuccess: function () {
         showCameraButton();
         console.log("intialize succeded");
@@ -74,28 +169,29 @@
     });
   }
 
-  function showCameraButton(){
+  function showCameraButton() {
     cameraBtn.style.display = "block";
   }
 
-  function closeCamera(){
+  function closeCamera() {
     camera.style.display = "none";
     result.style.display = "block";
     cameraBtn.style.display = "block";
     AcuantCameraUI.end();
   }
 
-  function openCamera(){
+  function openCamera() {
     cameraBtn.style.display = "none";
     result.style.display = "none";
+    resultFace.style.display = "none";
     camera.style.display = "block";
     startCamera();
   }
 
   function startCamera() {
     AcuantCameraUI.start((response) => {
-      drawImageOnResult(response);
       closeCamera();
+      drawImageOnResult(response);
     }, (error) => {
       alert("Camera not supported\n" + error);
       console.log(error);
@@ -107,28 +203,28 @@
     AcuantJavascriptWebSdk.end();
   }
 
-  function drawImageOnResult(result){
-  if(result && result.image){
-    var image = new Image();
-    image.onload = function () {
-      let width = result.image.width;
-      let height = result.image.height;
+  function drawImageOnResult(result) {
+    if (result && result.image) {
+      var image = new Image();
+      image.onload = function () {
+        let width = result.image.width;
+        let height = result.image.height;
 
-      sharpnessInput.value = result.sharpness;
-      glareInput.value = result.glare;
-      dpiInput.value = result.dpi;
+        sharpnessInput.value = result.sharpness;
+        glareInput.value = result.glare;
+        dpiInput.value = result.dpi;
 
-      canvas.width = width;
-      canvas.height = height;
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      window.scrollTo(0, window.screen.height);
-    };
-    image.src = result.image.data;
+        canvas.width = width;
+        canvas.height = height;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        window.scrollTo(0, window.screen.height);
+      };
+      image.src = result.image.data;
+    }
   }
-}
-  
-const acuantConfig = {
+
+  const acuantConfig = {
     path: "/webSdk/dist/"
   }
 </script>

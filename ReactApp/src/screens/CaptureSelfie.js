@@ -1,9 +1,9 @@
-import React, {Component, Fragment} from 'react';
+import React, { Component, Fragment } from 'react';
 import Header from './Header';
-import {connect} from "react-redux";
+import { connect } from "react-redux";
 import FaceMatchService from "../services/api/faceMatch";
-import {bindActionCreators} from "redux";
-import {processID} from "./actions/processDataActions";
+import { bindActionCreators } from "redux";
+import { processID } from "./actions/processDataActions";
 import Processing from "./Processing";
 
 class CaptureSelfie extends Component {
@@ -18,7 +18,7 @@ class CaptureSelfie extends Component {
     }
 
     componentDidMount() {
-        let {instanceID} = this.props;
+        let { instanceID } = this.props;
         this.props.processID(instanceID);
     }
 
@@ -35,12 +35,13 @@ class CaptureSelfie extends Component {
                             'SubscriptionId': process.env.REACT_APP_SUBSCRIPTION_ID
                         }
                     }).then(res => {
-                        this.props.dispatch({payload: res.Score, type: '@@acuant/ADD_FACE_MATCH_DATA'});
+                        this.setState({loading: false});
+                        this.props.dispatch({ payload: res.Score, type: '@@acuant/ADD_FACE_MATCH_DATA' });
                         this.props.history.push('/results/default');
                     })
-                    .catch(err => {
-                        throw new Error(err);
-                    });
+                        .catch(err => {
+                            throw new Error(err);
+                        });
                 }
             } else {
                 this.props.history.push('/results/default');
@@ -60,8 +61,8 @@ class CaptureSelfie extends Component {
         let reader = new FileReader();
         reader.readAsDataURL(file.files[0]);
         reader.onload = (e) => {
-            
-            self.setState({loading: true});
+
+            self.setState({ loading: true });
             let img = document.createElement("img");
             img.src = e.target.result;
             img.onload = function () {
@@ -105,9 +106,38 @@ class CaptureSelfie extends Component {
         };
     }
 
+    openFrontCamera() {
+        window.AcuantPassiveLiveness.startSelfieCapture(this.onCaptured.bind(this));
+    }
+
+    onCaptured(image) {
+        this.setState({loading: true});
+        window.AcuantPassiveLiveness.postLiveness({
+            endpoint: process.env.REACT_APP_LIVENESS_ENDPOINT,
+            token: (function(){
+                if(process.env.NODE_ENV === 'development'){
+                    return btoa(`${process.env.REACT_APP_USER_NAME}:${process.env.REACT_APP_PASSWORD}`);
+                }
+                else{
+                    return process.env.REACT_APP_AUTH_TOKEN;
+                }
+            })(),
+            image: image,
+            subscriptionId: process.env.REACT_APP_SUBSCRIPTION_ID
+        }, function (result) {
+            this.props.dispatch({ payload: result, type: '@@acuant/ADD_FACE_LIVENESS_DATA' });
+            this.setState({
+                selfie: image
+            }, () => {
+                this.forceUpdate();
+                this.processSelfieAndRedirect();
+            })
+        }.bind(this));
+    }
+
     render() {
         if (this.state.loading) {
-            return <Processing/>
+            return <Processing />
         }
         return (
             <Fragment>
@@ -119,29 +149,19 @@ class CaptureSelfie extends Component {
                     <div className='row wrapper description_container'>
                         <p className='description'>Take a selfie image using the front camera of your device.</p>
                     </div>
-                    
+
                     <div className="capture_group">
 
                         <div className='row wrapper capture_container'>
-
-                            <img alt='idscango' className='capture' src={require('../assets/images/illustration2@3x.png')}/>
-                            <input type="file"
-                                accept="image/*"
-                                capture="user"
-                                   name={'camera'}
-                                id="camera"
-                                className='hidden'
-                                onChange={this.updateInputValue.bind(this)}
-                            />
-
+                            <img alt='idscango' className='capture' src={require('../assets/images/illustration2@3x.png')} />
                         </div>
 
                         <div className="wrapper column capture_controls">
 
-                            <label htmlFor="camera" className='btn'>
+                            <label className='btn' onClick={this.openFrontCamera.bind(this)}>
                                 <p className={'buttonBgText'}>Take selfie image</p>
                             </label>
-                            <div className='btn outline' onClick={() => {this.props.history.push('/results/default')}}>
+                            <div className='btn outline' onClick={() => { this.props.history.push('/results/default') }}>
                                 <p className={'buttonBdText'}>Skip this step</p>
                             </div>
 
@@ -160,13 +180,14 @@ function mapStateToProps(state) {
     return {
         instanceID: state.config.instanceID,
         faceMatch: state.processedData.faceMatch,
-        resultData: state.processedData.result
+        resultData: state.processedData.result,
+        liveness: state.processedData.liveness
     }
 }
 
 function mapDispatchToProps(dispatch) {
-    let actions = bindActionCreators({processID}, dispatch);
-    return {...actions, dispatch};
+    let actions = bindActionCreators({ processID }, dispatch);
+    return { ...actions, dispatch };
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(CaptureSelfie);

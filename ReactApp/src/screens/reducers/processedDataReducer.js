@@ -10,6 +10,11 @@ export function processedDataReducer(state = {}, action) {
                 ...state,
                 faceMatch: action.payload
             };
+        case "@@acuant/ADD_FACE_LIVENESS_DATA":
+                return {
+                    ...state,
+                    liveness: action.payload
+            };
         case "@@acuant/RESET_PROCESSED_DATA":
             return {
                 faceMatch: null,

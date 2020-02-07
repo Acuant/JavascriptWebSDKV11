@@ -1,21 +1,21 @@
-# Acuant JavaScript Web SDK v11.1.1
+# Acuant JavaScript Web SDK v11.3
 
 
-**December 2019**
+**January 2020**
 
 ----------
 
 # Introduction #
-
-This document provides detailed information about the Acuant JavaScriptWeb SDK. Acuant JavaScript Web SDK allows developers to integrate image capture and processing functionality in their Mobile Web Apps.
+ 
+This document provides detailed information about the Acuant JavaScript Web SDK. The JavaScript Web SDK allows developers to integrate image capture and processing functionality in their mobile web applications.
 
 ----------
 ## Supported browsers ###
 
-The JavaScript Web SDK supports the following web browsers for Live Capture of ID Documents:
+The JavaScript Web SDK supports the following web browsers for live capture of ID documents:
 
-- Android - Chrome, Firefox
-- iOS - Safari
+- **Android**: Chrome, Firefox
+- **iOS**: Safari
 
 For other browsers, regular HTML capture is used.
 
@@ -27,6 +27,7 @@ The SDK includes the following modules:
 **Acuant JavaScript SDK (AcuantJavaScriptSdk.min.js):**
 
 - Live Document Capture functionality 
+- Face Capture with Passive Liveness available with credentials
 - Additional Camera UI provided by Acuant.
 - Uses Acuant library to detect documents, crop, calculate sharpness and glare.
 
@@ -51,7 +52,7 @@ The SDK includes the following modules:
 	
 		<script async src="AcuantJavascriptSdk.min.js" />
 
-1. Definte a custom path to load files if different than root:
+1. Definte a custom path to load files (if different than root):
 
 		const acuantConfig = = {
 			path: "/custom/path/to/sdk/"
@@ -63,7 +64,77 @@ The SDK includes the following modules:
 		var onAcuantSdkLoaded = function(){
 	       //sdk has been loaded;
 	    }
-	    ###Process the image###
+	     
+----------
+##AcuantPassiveLiveness##
+Acuant recommends using the **LiveAssessment** property rather than the score) to evaluate response. **AcuantPassiveLiveness.startSelfieCapture** will return a rescaled image.
+
+Follow these recommendations to effectively process an image for passive liveness:
+####Image requirements
+- **Height**:  minimum 480 pixels; recommended 720 or 1080 pixels
+- **Compression**:  Image compression is not recommended (JPEG 70 level or above is acceptable). For best results, use uncompressed images.
+
+####Face requirements
+- Out-of-plane rotation:  Face pitch and yaw angle: from -20 to 20 degrees +/-3 degrees
+- In-plane rotation:  Face roll angle: from -30 to 30 degrees +/- 3 degrees
+- Pupillary distance:  Minimum distance between the eyes 90 +/- 5 pixels
+- Face size: Minimum 200 pixels in either dimension
+- Faces per image: 1
+- Sunglasses: Must be removed
+
+####Capture requirements
+The following may significantly increase errors or false results:
+
+- Using a motion blur effect
+- Texture filtering
+- A spotlight on the face and nearest surroundings
+- An environment with poor lighting or colored light
+
+**Note**  The use of fish-eye lenses is not supported by this API.
+
+###Start face capture and send  Passive Liveness request
+
+1. Start face capture.
+
+		AcuantPassiveLiveness.startSelfieCapture(callback:function(base64img){
+			//called with result
+		})
+		
+1. Send Passive Liveness Request.
+
+		AcuantPassiveLiveness.postLiveness({
+			endpoint: "ACUANT_PASSIVE_LIVENESS_ENDPOINT",
+			token: "ACUANT_PASSIVE_LIVENESS_TOKEN",
+			subscriptionId: "ACUANT_PASSIVE_LIVENESS_SUBSCRIPTIONID",
+			image: base64img
+		}, function(result){
+			result = {
+				LivenessResult = {
+					LivenessAssessment : String = 
+						//POSSIBLE VALUES
+						"Live", 
+						"NotLive",
+						"PoorQuality", 
+						"Error";
+					Score: 0
+				},
+				Error: "",//error description
+				ErrorCode: String = 
+					//POSSIBLE VALUES
+					"Unknown", 
+					"FaceTooClose", 
+					"FaceNotFound", 
+					"FaceTooSmall", 
+					"FaceAngleTooLarge", 
+					"FailedToReadImage", 
+					"InvalidRequest", 
+					"InvalidRequestSettings",
+					"Unauthorized", 
+					"NotFound"
+			}
+		})
+		
+
 
 ----------
 ###Initialize and Start Web Worker###
@@ -298,13 +369,13 @@ The SDK includes the following modules:
 
 -------------------------------------------------------------
 
-**Copyright 2019 Acuant Inc. All rights reserved.**
+**Copyright 2020 Acuant Inc. All rights reserved.**
 
 This document contains proprietary and confidential information and creative works owned by Acuant and its respective licensors, if any. Any use, copying, publication, distribution, display, modification, or transmission of such technology, in whole or in part, in any form or by any means, without the prior express written permission of Acuant is strictly prohibited. Except where expressly provided by Acuant in writing, possession of this information shall not be construed to confer any license or rights under any Acuant intellectual property rights, whether by estoppel, implication, or otherwise.
 
 AssureID and *i-D*entify are trademarks of Acuant Inc. Other Acuant product or service names or logos referenced this document are either trademarks or registered trademarks of Acuant.
 
-All 3M trademarks are trademarks of Gemalto Inc.
+All 3M trademarks are trademarks of Gemalto/Thales Inc.
 
 Windows is a registered trademark of Microsoft Corporation.
 
