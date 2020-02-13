@@ -5,12 +5,12 @@
 
 ----------
 
-# Introduction #
+# Introduction
  
 This document provides detailed information about the Acuant JavaScript Web SDK. The JavaScript Web SDK allows developers to integrate image capture and processing functionality in their mobile web applications.
 
 ----------
-## Supported browsers ###
+## Supported browsers
 
 The JavaScript Web SDK supports the following web browsers for live capture of ID documents:
 
@@ -20,7 +20,7 @@ The JavaScript Web SDK supports the following web browsers for live capture of I
 For other browsers, regular HTML capture is used.
 
 
-## Modules ##
+## Modules
 
 The SDK includes the following modules:
 
@@ -40,7 +40,7 @@ The SDK includes the following modules:
 - HTML5 Web Worker to process the images
 
 ----------
-###Setup###
+### Setup
 
 1. Add the following dependencies on these files (**Note**:  These files should be accessible by HTTP in the public resource directory of the hosted application.):
 	- **AcuantJavaScriptSdk.min.js**
@@ -66,15 +66,16 @@ The SDK includes the following modules:
 	    }
 	     
 ----------
-##AcuantPassiveLiveness##
+## AcuantPassiveLiveness
+
 Acuant recommends using the **LiveAssessment** property rather than the score) to evaluate response. **AcuantPassiveLiveness.startSelfieCapture** will return a rescaled image.
 
 Follow these recommendations to effectively process an image for passive liveness:
-####Image requirements
+#### Image requirements
 - **Height**:  minimum 480 pixels; recommended 720 or 1080 pixels
 - **Compression**:  Image compression is not recommended (JPEG 70 level or above is acceptable). For best results, use uncompressed images.
 
-####Face requirements
+#### Face requirements
 - Out-of-plane rotation:  Face pitch and yaw angle: from -20 to 20 degrees +/-3 degrees
 - In-plane rotation:  Face roll angle: from -30 to 30 degrees +/- 3 degrees
 - Pupillary distance:  Minimum distance between the eyes 90 +/- 5 pixels
@@ -82,7 +83,7 @@ Follow these recommendations to effectively process an image for passive livenes
 - Faces per image: 1
 - Sunglasses: Must be removed
 
-####Capture requirements
+#### Capture requirements
 The following may significantly increase errors or false results:
 
 - Using a motion blur effect
@@ -92,7 +93,7 @@ The following may significantly increase errors or false results:
 
 **Note**  The use of fish-eye lenses is not supported by this API.
 
-###Start face capture and send  Passive Liveness request
+### Start face capture and send  Passive Liveness request
 
 1. Start face capture.
 
@@ -137,7 +138,7 @@ The following may significantly increase errors or false results:
 
 
 ----------
-###Initialize and Start Web Worker###
+### Initialize and Start Web Worker
 
 1. Start the HTML5 Web Worker. (**Note**: Only one worker is allowed per application therefore, if you previously called start, it won't start another instance.)
 		
@@ -167,7 +168,7 @@ The following may significantly increase errors or false results:
 		AcuantJavascriptWebSdk.end();
             
 ----------
-###AcuantCameraUI###
+### AcuantCameraUI
 
 - Uses AcuantCamera to access native camera.
 - Default implementation of UI. Use AcuantCamera directly for any custom UI.
@@ -193,7 +194,7 @@ The following may significantly increase errors or false results:
 		AcuantCameraUI.end();
 ----------
 
-###AcuantCamera###
+### AcuantCamera
 
 **Prerequisite:**
 	Initialize Acuant Worker (see Step 2 above).
@@ -319,7 +320,7 @@ The following may significantly increase errors or false results:
 		})();
 		
 ----------
-###Process the Image###
+### Process the Image
 
 **Prerequisite:**
 	Initialize Acuant Worker (see Step 2 above).
