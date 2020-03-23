@@ -138,7 +138,7 @@ The following may significantly increase errors or false results:
 
 
 ----------
-### Initialize and Start Web Worker
+## Initialize and Start Web Worker
 
 1. Start the HTML5 Web Worker. (**Note**: Only one worker is allowed per application therefore, if you previously called start, it won't start another instance.)
 		
@@ -168,7 +168,7 @@ The following may significantly increase errors or false results:
 		AcuantJavascriptWebSdk.end();
             
 ----------
-### AcuantCameraUI
+## AcuantCameraUI
 
 - Uses AcuantCamera to access native camera.
 - Default implementation of UI. Use AcuantCamera directly for any custom UI.
@@ -194,7 +194,7 @@ The following may significantly increase errors or false results:
 		AcuantCameraUI.end();
 ----------
 
-### AcuantCamera
+## AcuantCamera
 
 **Prerequisite:**
 	Initialize Acuant Worker (see Step 2 above).
@@ -320,7 +320,7 @@ The following may significantly increase errors or false results:
 		})();
 		
 ----------
-### Process the Image
+## Process the Image
 
 **Prerequisite:**
 	Initialize Acuant Worker (see Step 2 above).
