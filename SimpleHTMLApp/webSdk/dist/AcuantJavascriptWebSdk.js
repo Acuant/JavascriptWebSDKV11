@@ -315,8 +315,8 @@ function drawPoints(fillStyle) {
       x: dimension.width/2,
       y: dimension.height/2
     }
-    var offsetX = dimension.width/3;
-    var offsetY = dimension.height/3.25;
+    var offsetX = dimension.width/2.7;
+    var offsetY = dimension.height/3;
 
     let defaultCorners = [
       { x: center.x - offsetX, y: center.y - offsetY },
@@ -356,7 +356,7 @@ var AcuantCamera = (function () {
         PASSPORT: 2
     }
 
-    const SMALL_DOC_DPI_SCALE = 0.18229;
+    const SMALL_DOC_DPI_SCALE = 0.19;
     const LARGE_DOC_DPI_SCALE = 0.11719;
     var onDetectCallback = null;
     var onManualCaptureCallback = null;
@@ -389,18 +389,13 @@ var AcuantCamera = (function () {
         frameScale: 0.75,
         primaryConstraints: {
             video: {
-                facingMode: {
-                    exact: "environment"
-                },
-                width: { ideal: 2560 },
+                facingMode: { exact: "environment" },
                 height: { ideal: 1440 },
             }
         },
         secondaryConstraints: {
             video: {
-                facingMode: {
-                    exact: "environment"
-                },
+                facingMode: { exact: "environment" },
                 width: { ideal: 1760 },
                 height: { ideal: 990 },
             }
@@ -669,6 +664,7 @@ var AcuantCamera = (function () {
         else {
             var targetWidth = window.innerWidth;
             var targetHeight = window.innerHeight;
+
             if (isSafari()) {
                 if (player.videoWidth > player.videoHeight) {
                     targetHeight = document.body.clientWidth;

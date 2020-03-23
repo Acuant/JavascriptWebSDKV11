@@ -1,7 +1,7 @@
-# Acuant JavaScript Web SDK v11.3
+# Acuant JavaScript Web SDK v11.3.1
 
 
-**January 2020**
+**March 2020**
 
 ----------
 
@@ -14,7 +14,7 @@ This document provides detailed information about the Acuant JavaScript Web SDK.
 
 The JavaScript Web SDK supports the following web browsers for live capture of ID documents:
 
-- **Android**: Chrome, Firefox
+- **Android**: Chrome, Firefox11.
 - **iOS**: Safari
 
 For other browsers, regular HTML capture is used.

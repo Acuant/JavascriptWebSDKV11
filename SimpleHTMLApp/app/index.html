@@ -3,33 +3,45 @@
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
-    <style>
+  <style>
     .loader {
       border: 16px solid #f3f3f3;
       border-radius: 50%;
       border-top: 16px solid #3498db;
       width: 120px;
       height: 120px;
-      -webkit-animation: spin 2s linear infinite; /* Safari */
+      -webkit-animation: spin 2s linear infinite;
+      /* Safari */
       animation: spin 2s linear infinite;
     }
 
     /* Safari */
     @-webkit-keyframes spin {
-      0% { -webkit-transform: rotate(0deg); }
-      100% { -webkit-transform: rotate(360deg); }
+      0% {
+        -webkit-transform: rotate(0deg);
+      }
+
+      100% {
+        -webkit-transform: rotate(360deg);
+      }
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
-</style>
+  </style>
 </header>
+
 <body>
   <div id="acuant-loader" class="row text-center" style="display:none;">
     <div class="col-md-12">
-        <div class="loader" style="margin: 10% 0 0 45%"></div>
+      <div class="loader" style="margin: 10% 0 0 45%"></div>
     </div>
   </div>
   <div id="camera-btn" class="row text-center" style="display:none; margin:10% 0 10% 0">
@@ -106,12 +118,14 @@
 
   const loader = document.getElementById('acuant-loader');
 
-  const Credential = {
-    liveness_endpoint: "",
-    id_endpoint: "",
-    acuant_username: "",
-    acuant_password: "",
-    acuant_subscriptionId: ""
+  var Credential = {
+    passive_username: "xxx",
+    passive_password: "xxx",
+    id_username: "xxx",
+    id_password: "xxx",
+    passive_subscriptionId: "xxx",
+    id_endpoint: "xxx",
+    liveness_endpoint: "xxx"
   }
 
   function onAcuantSdkLoaded() {
@@ -133,9 +147,9 @@
     loader.style.display = "block";
     AcuantPassiveLiveness.postLiveness({
       endpoint: Credential.liveness_endpoint,
-      token: btoa(Credential.acuant_username + ':' + Credential.acuant_password),
+      token: btoa(Credential.passive_username + ':' + Credential.passive_password),
       image: image,
-      subscriptionId: Credential.acuant_subscriptionId
+      subscriptionId: Credential.passive_subscriptionId
     }, function (result) {
       cameraBtn.style.display = "block";
       if (result) {
@@ -143,7 +157,7 @@
           setUIValues("face-score", result.LivenessResult.Score);
           setUIValues("face-result", result.LivenessResult.LivenessAssessment);
         }
-        else{
+        else {
           setUIValues("face-score", "");
           setUIValues("face-result", "");
         }
@@ -152,12 +166,12 @@
         setUIValues("face-error-description", result.Error);
       }
       resultFace.style.display = "block";
-      loader.style.display="none";
+      loader.style.display = "none";
     })
   }
 
   function init() {
-    let base64Token = btoa(Credential.acuant_username + ':' + Credential.acuant_password);
+    let base64Token = btoa(Credential.id_username + ':' + Credential.id_password);
     AcuantJavascriptWebSdk.initialize(base64Token, Credential.id_endpoint, {
       onSuccess: function () {
         showCameraButton();
@@ -229,4 +243,5 @@
   }
 </script>
 <script async src="/webSdk/dist/AcuantJavascriptWebSdk.min.js"></script>
+
 </html>

@@ -37,17 +37,24 @@ class App extends Component {
             if (!isMobile) {
                 this.props.routerHistory.replace('/error/mobileonly');
                 document.body.classList.add('mobile-only');
+                this.setState({isAcuantSdkLoaded: true});
             } else {
                 if (!this.props.config) {
                     this.props.routerHistory.replace('/');
                 }
+                this.loadScript();
             }
         } else {
             if (!this.props.config) {
                 this.props.routerHistory.replace('/');
             }
+            this.loadScript();
         }
         
+  
+    }
+
+    loadScript(){
         window.onAcuantSdkLoaded = function(){
             this.initialize();
         }.bind(this);
