@@ -1,4 +1,4 @@
-# Acuant JavaScript Web SDK v11.3.1
+# Acuant JavaScript Web SDK v11.3.2
 
 
 **March 2020**
@@ -179,6 +179,17 @@ The following may significantly increase errors or false results:
 		
 		<video id="acuant-player" controls autoplay style="display:none;" playsinline></video>
 		<canvas id="acuant-video-canvas" width="100%" height="auto"></canvas>
+
+1. Set custom strings. (Optional)
+
+		var options = {
+			text:{
+				NONE: "ALIGN",
+				SMALL_DOCUMENT: "MOVE CLOSER",
+				GOOD_DOCUMENT: null,//default countdown
+				CAPTURING: "CAPTURING"
+			}
+		};
 	
 1. Start the Camera and get result.
 	
@@ -187,7 +198,7 @@ The following may significantly increase errors or false results:
 	      	//end
 	    }, (error) => {
 	      alert("Camera not supported\n" + error);
-	    });
+	    }, options);
 	    
 1. End Camera.
 

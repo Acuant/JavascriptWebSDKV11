@@ -7,9 +7,10 @@ var AcuantCameraUI = (function(){
   var tempCanvas = document.createElement("canvas");
   var tempContext = tempCanvas.getContext('2d');
 
+
   let svc = {
       start: start,
-      end: end
+      end: end,
   };
 
   var isPausing = false;
@@ -19,6 +20,15 @@ var AcuantCameraUI = (function(){
   var counter = null;
 
   var timeout = null;
+
+  var userOptions = {
+    text:{
+      NONE: "ALIGN",
+      SMALL_DOCUMENT: "MOVE CLOSER",
+      GOOD_DOCUMENT: null,
+      CAPTURING: "CAPTURING"
+    }
+  };
 
   const TRIGGER_TIME = 2000;
 
@@ -37,18 +47,21 @@ var AcuantCameraUI = (function(){
     isStarted = false;
   }
 
-  function start(captureCb, errorCb){
-    if(!isStarted){
-      isStarted = true;
-      reset();
-      
-      if(AcuantCamera.isCameraSupported){
+  function start(captureCb, errorCb, options){
+    if(options){
+      userOptions = options
+    }
+    if(AcuantCamera.isCameraSupported){
+      if(!isStarted){
+        isStarted = true;
+        reset();
         startCamera(captureCb, errorCb);
       }
-      else{
-        startManualCamera(captureCb, errorCb);
-      }
     }
+    else{
+      startManualCamera(captureCb, errorCb);
+    }
+
   }
 
   function triggerCountDown(captureCb){
@@ -249,29 +262,40 @@ function drawCorners(point, index){
 function handleUi() {
   if(!onDetectedResult){
     drawPoints("#000000");
-    drawText("ALIGN");
+    drawText(userOptions.text.NONE);
   }
   else if (onDetectedResult.state === -1) {
     drawPoints("#00ff00");
     drawOverlay("rgba(0, 255, 0, 0.2)");
-    drawText("CAPTURING", 0.05, "#00ff00", false);
+    drawText(userOptions.text.CAPTURING, 0.05, "#00ff00", false);
   }
   else if (onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.GOOD_DOCUMENT) {
     drawPoints("#ffff00");
     drawOverlay("rgba(255, 255, 0, 0.2)");
-    let diff = Math.ceil((TRIGGER_TIME - (new Date().getTime() - counter))/1000)
-    if(diff <= 0){
-      diff = 1;
+
+    if(userOptions.text.GOOD_DOCUMENT){
+      let diff = Math.ceil((TRIGGER_TIME - (new Date().getTime() - counter))/1000)
+      if(diff <= 0){
+        diff = 1;
+      }
+      drawText(userOptions.text.GOOD_DOCUMENT, 0.09, "#ff0000", false);
     }
-    drawText(diff + "...", 0.09, "#ff0000", false);
+    else{
+      let diff = Math.ceil((TRIGGER_TIME - (new Date().getTime() - counter))/1000)
+      if(diff <= 0){
+        diff = 1;
+      }
+      drawText(diff + "...", 0.09, "#ff0000", false);
+    }
+
   }
   else if (onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.SMALL_DOCUMENT) {
     drawPoints("#ff0000");
-    drawText("MOVE CLOSER");
+    drawText(userOptions.text.SMALL_DOCUMENT);
   }
   else {
     drawPoints("#000000");
-    drawText("ALIGN");
+    drawText(userOptions.text.NONE);
   }
 }
 
@@ -461,10 +485,12 @@ var AcuantCamera = (function () {
 
     function startManualCapture(callback) {
         onManualCaptureCallback = callback;
-        manualCaptureInput = document.createElement("input");
-        manualCaptureInput.type = "file";
-        manualCaptureInput.capture = "environment";
-        manualCaptureInput.accept = "image/*";
+        if(!manualCaptureInput){
+            manualCaptureInput = document.createElement("input");
+            manualCaptureInput.type = "file";
+            manualCaptureInput.capture = "environment";
+            manualCaptureInput.accept = "image/*";
+        }
         manualCaptureInput.onchange = onManualCapture;
         manualCaptureInput.click();
     }
@@ -569,7 +595,7 @@ var AcuantCamera = (function () {
                 AcuantJavascriptWebSdk.crop(imgData, width, height,
                     {
                         onSuccess: function (result) {
-                            result.image.data = toBase64(result.image, result.isPassport, false, captureOrientation);
+                            result.image.data = toBase64(result.image, result.cardType == 2, false, captureOrientation);
                             onManualCaptureCallback.onCropped(result);
                         },
 
@@ -759,7 +785,7 @@ var AcuantCamera = (function () {
     function crop(imgData, width, height, callback) {
         AcuantJavascriptWebSdk.crop(imgData, width, height, {
             onSuccess: function (response) {
-                response.image.data = toBase64(response.image, response.isPassport, true);
+                response.image.data = toBase64(response.image, response.cardType == 2, true);
                 callback(response);
             },
             onFail: function () {
@@ -813,7 +839,6 @@ var AcuantCamera = (function () {
 
     return svc;
 })();
-
 var config = {}
 
 if(typeof acuantConfig !== "undefined" && Object.keys(acuantConfig).length !== 0 && acuantConfig.constructor === Object){
@@ -1058,16 +1083,16 @@ function loadAcuantSdk(){
             }
         }
     
-        function onCrop(width, height, isPassport, rawGlare, rawSharpness){
+        function onCrop(width, height, cardType, rawGlare, rawSharpness){
             var cb = clientCallbacks[STORED_CROP_FUNC_KEY];
 
             freeArray(allocatedBytes);
             allocatedBytes = null;
 
             if(cb){
-                if(width != -1 && height != -1 && isPassport != -1){
+                if(width != -1 && height != -1 && cardType != -1){
                     let imgData = getImageData(width, height),
-                        dpi = calculateDpi(width, height, isPassport),
+                        dpi = calculateDpi(width, height, cardType == 2),
                         sharpness = rawSharpness * 100,
                         glare = rawGlare * 100;
         
@@ -1079,7 +1104,7 @@ function loadAcuantSdk(){
                         }, 
                         glare, 
                         sharpness,
-                        isPassport,
+                        cardType,
                         dpi
                     });
                 }
@@ -10109,16 +10134,16 @@ var __Znwm = Module["__Znwm"] = function() {
   return Module["asm"]["__Znwm"].apply(null, arguments)
 };
 
-var ___DOUBLE_BITS_273 = Module["___DOUBLE_BITS_273"] = function() {
+var ___DOUBLE_BITS_548 = Module["___DOUBLE_BITS_548"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["___DOUBLE_BITS_273"].apply(null, arguments)
+  return Module["asm"]["___DOUBLE_BITS_548"].apply(null, arguments)
 };
 
-var ___DOUBLE_BITS_670 = Module["___DOUBLE_BITS_670"] = function() {
+var ___DOUBLE_BITS_662 = Module["___DOUBLE_BITS_662"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["___DOUBLE_BITS_670"].apply(null, arguments)
+  return Module["asm"]["___DOUBLE_BITS_662"].apply(null, arguments)
 };
 
 var ___clang_call_terminate = Module["___clang_call_terminate"] = function() {
@@ -10157,10 +10182,10 @@ var ___cxx_global_var_init = Module["___cxx_global_var_init"] = function() {
   return Module["asm"]["___cxx_global_var_init"].apply(null, arguments)
 };
 
-var ___cxx_global_var_init_67 = Module["___cxx_global_var_init_67"] = function() {
+var ___cxx_global_var_init_71 = Module["___cxx_global_var_init_71"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["___cxx_global_var_init_67"].apply(null, arguments)
+  return Module["asm"]["___cxx_global_var_init_71"].apply(null, arguments)
 };
 
 var ___dynamic_cast = Module["___dynamic_cast"] = function() {
@@ -10229,10 +10254,10 @@ var ___overflow = Module["___overflow"] = function() {
   return Module["asm"]["___overflow"].apply(null, arguments)
 };
 
-var ___pthread_self_423 = Module["___pthread_self_423"] = function() {
+var ___pthread_self_896 = Module["___pthread_self_896"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["___pthread_self_423"].apply(null, arguments)
+  return Module["asm"]["___pthread_self_896"].apply(null, arguments)
 };
 
 var ___shgetc = Module["___shgetc"] = function() {
@@ -10373,10 +10398,10 @@ var _dispose_chunk = Module["_dispose_chunk"] = function() {
   return Module["asm"]["_dispose_chunk"].apply(null, arguments)
 };
 
-var _dummy_560 = Module["_dummy_560"] = function() {
+var _dummy = Module["_dummy"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_dummy_560"].apply(null, arguments)
+  return Module["asm"]["_dummy"].apply(null, arguments)
 };
 
 var _emscripten_replace_memory = Module["_emscripten_replace_memory"] = function() {
@@ -10457,10 +10482,10 @@ var _getBytes = Module["_getBytes"] = function() {
   return Module["asm"]["_getBytes"].apply(null, arguments)
 };
 
-var _getint = Module["_getint"] = function() {
+var _getint_654 = Module["_getint_654"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_getint"].apply(null, arguments)
+  return Module["asm"]["_getint_654"].apply(null, arguments)
 };
 
 var _hexfloat = Module["_hexfloat"] = function() {
@@ -10547,22 +10572,22 @@ var _onInitialized = Module["_onInitialized"] = function() {
   return Module["asm"]["_onInitialized"].apply(null, arguments)
 };
 
-var _out = Module["_out"] = function() {
+var _out_653 = Module["_out_653"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_out"].apply(null, arguments)
+  return Module["asm"]["_out_653"].apply(null, arguments)
 };
 
-var _pad_667 = Module["_pad_667"] = function() {
+var _pad_659 = Module["_pad_659"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_pad_667"].apply(null, arguments)
+  return Module["asm"]["_pad_659"].apply(null, arguments)
 };
 
-var _pop_arg = Module["_pop_arg"] = function() {
+var _pop_arg_656 = Module["_pop_arg_656"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_pop_arg"].apply(null, arguments)
+  return Module["asm"]["_pop_arg_656"].apply(null, arguments)
 };
 
 var _pop_arg_long_double = Module["_pop_arg_long_double"] = function() {
@@ -10679,10 +10704,10 @@ var _strtod = Module["_strtod"] = function() {
   return Module["asm"]["_strtod"].apply(null, arguments)
 };
 
-var _strtox = Module["_strtox"] = function() {
+var _strtox_806 = Module["_strtox_806"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
-  return Module["asm"]["_strtox"].apply(null, arguments)
+  return Module["asm"]["_strtox_806"].apply(null, arguments)
 };
 
 var _try_realloc_chunk = Module["_try_realloc_chunk"] = function() {

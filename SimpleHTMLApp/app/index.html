@@ -98,6 +98,16 @@
 
 
 <script>
+  var Credential = {
+    passive_username:"xxx",
+    passive_password:"xxx",
+    id_username: "xxx",
+    id_password: "xxx",
+    passive_subscriptionId:"xxx",
+    id_endpoint:"https://services.assureid.net",
+    liveness_endpoint:"https://preview.passlive.acuant.net"
+  }
+
   const player = document.getElementById('acuant-player');
 
   const videoCanvas = document.getElementById('acuant-video-canvas');
@@ -118,24 +128,11 @@
 
   const loader = document.getElementById('acuant-loader');
 
-  var Credential = {
-    passive_username: "xxx",
-    passive_password: "xxx",
-    id_username: "xxx",
-    id_password: "xxx",
-    passive_subscriptionId: "xxx",
-    id_endpoint: "xxx",
-    liveness_endpoint: "xxx"
-  }
-
   function onAcuantSdkLoaded() {
     init();
   }
 
   function openFrontCamera() {
-    cameraBtn.style.display = "none";
-    result.style.display = "none";
-    resultFace.style.display = "none";
     AcuantPassiveLiveness.startSelfieCapture(onCapture);
   }
   function setUIValues(id, value) {
@@ -195,11 +192,23 @@
   }
 
   function openCamera() {
-    cameraBtn.style.display = "none";
-    result.style.display = "none";
-    resultFace.style.display = "none";
-    camera.style.display = "block";
+    if (AcuantCamera.isCameraSupported) {
+      cameraBtn.style.display = "none";
+      result.style.display = "none";
+      resultFace.style.display = "none";
+      camera.style.display = "block";
+    }
+
     startCamera();
+  }
+
+  const options = {
+    text:{
+      NONE: "ALIGN",
+      SMALL_DOCUMENT: "MOVE CLOSER",
+      GOOD_DOCUMENT: null,//null countdown
+      CAPTURING: "CAPTURING"
+    }
   }
 
   function startCamera() {
@@ -209,7 +218,7 @@
     }, (error) => {
       alert("Camera not supported\n" + error);
       console.log(error);
-    });
+    }, options);
   }
 
   function end() {
@@ -243,5 +252,4 @@
   }
 </script>
 <script async src="/webSdk/dist/AcuantJavascriptWebSdk.min.js"></script>
-
 </html>
