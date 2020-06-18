@@ -1,7 +1,7 @@
-# Acuant JavaScript Web SDK v11.3.2
+# Acuant JavaScript Web SDK v11.3.3
 
 
-**March 2020**
+**June 2020**
 
 ----------
 
@@ -286,21 +286,21 @@ The following may significantly increase errors or false results:
     	
 1. Manual Capture:
 		
-		AcuantCamera.startManualCapture({
-	      onCaptured: function(){
-	        //this will be called after user finishes capture
-	        //then proceeds to crop
-	        //onCropped will be called after finished
-	      },
-	      onCropped: function(response){
-	        if(response){
-	          //cropped response;
-	        }
-	        else{
-				//Error occurred during cropping; retry capture
-			}
-	      }
-	    });
+        AcuantCamera.startManualCapture({
+            onCaptured: function(){
+                //this will be called after user finishes capture
+                //then proceeds to crop
+                //onCropped will be called after finished
+            },
+            onCropped: function(response){
+                if(response){
+                    //cropped response;
+                }
+                else{
+                    //Error occurred during cropping; retry capture
+                }
+            }
+        });
 
 
 1. AcuantCamera Info:
