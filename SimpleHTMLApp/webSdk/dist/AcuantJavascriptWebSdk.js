@@ -181,13 +181,13 @@ function drawText(text, fontWeight = 0.04, color = "#ffffff", showBackRect = tru
   let offsetY = (Math.max(dimension.width, dimension.height) * 0.01);
   let offsetX = (Math.max(dimension.width, dimension.height) * 0.02);
 
-  var x = (dimension.height / 2) - offsetX - (measured.width/3);
+  var x = (dimension.height - offsetX - measured.width)/2;
   var y = -((dimension.width / 2) - offsetY);
   var rotation = 90
 
   if (currentOrientation !== 0) {
     rotation = 0;
-    x = ((dimension.width / 2) - offsetY) - (measured.width/3);
+    x = (dimension.width - offsetY - measured.width)/2;
     y = (dimension.height / 2) - offsetX + (Math.max(dimension.width, dimension.height) * 0.04);
   }
 
@@ -505,6 +505,11 @@ var AcuantCamera = (function () {
             manualCaptureInput.accept = "image/*";
         }
         manualCaptureInput.onchange = onManualCapture;
+        // When capture is intitiated clearout the existing value to allow user to 
+        // re-upload the same image if desired.
+        manualCaptureInput.onclick = function(event) {
+          event.target.value = '';
+        }
         manualCaptureInput.click();
     }
 
