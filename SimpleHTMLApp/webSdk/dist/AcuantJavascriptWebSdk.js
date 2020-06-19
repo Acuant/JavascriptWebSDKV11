@@ -508,7 +508,7 @@ var AcuantCamera = (function () {
         // When capture is intitiated clearout the existing value to allow user to 
         // re-upload the same image if desired.
         manualCaptureInput.onclick = function(event) {
-          event.target.value = '';
+          if(event && event.target) event.target.value = '';
         }
         manualCaptureInput.click();
     }
