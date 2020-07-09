@@ -35,6 +35,54 @@
         transform: rotate(360deg);
       }
     }
+
+    /* The Modal (background) */
+    .modal {
+      display: none;
+      /* Hidden by default */
+      position: fixed;
+      /* Stay in place */
+      z-index: 1;
+      /* Sit on top */
+      padding-top: 100px;
+      /* Location of the box */
+      left: 0;
+      top: 0;
+      width: 100%;
+      /* Full width */
+      height: 100%;
+      /* Full height */
+      overflow: auto;
+      /* Enable scroll if needed */
+      background-color: rgb(0, 0, 0);
+      /* Fallback color */
+      background-color: rgba(0, 0, 0, 0.4);
+      /* Black w/ opacity */
+    }
+
+    /* Modal Content */
+    .modal-content {
+      background-color: #fefefe;
+      margin: auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+    }
+
+    /* The Close Button */
+    .close {
+      color: #aaaaaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: #000;
+      text-decoration: none;
+      cursor: pointer;
+    }
   </style>
 </header>
 
@@ -94,20 +142,30 @@
       </div>
     </div>
   </div>
+  <!-- Modal content -->
+  <div id="acuant-modal" class="modal-content" style="display: none; margin-top:30%">
+    <span class="close">&times;</span>
+    <div class="row" style="margin:3%">
+      <h3>Live Camera failed to open. Start manual capture</h3>
+    </div>
+    <div class="row text-right" style="margin:3%">
+      <button class="btn btn-success mr-2" onClick="startManualCapture()">Start Manual Capture</button>
+    </div>
+  </div>
 </body>
 
 
 <script>
   var Credential = {
-    passive_username:"xxx",
-    passive_password:"xxx",
-    id_username: "xxx",
-    id_password: "xxx",
-    passive_subscriptionId:"xxx",
-    id_endpoint:"https://services.assureid.net",
-    liveness_endpoint:"https://us.passlive.acuant.net"
-  };
-
+      passive_username:"",
+      passive_password:"",
+      id_username: "",
+      id_password: "",
+      passive_subscriptionId:"",
+      id_endpoint:"https://services.assureid.net",
+      liveness_endpoint:"https://us.passlive.acuant.net"
+  }
+    
   const player = document.getElementById('acuant-player');
 
   const videoCanvas = document.getElementById('acuant-video-canvas');
@@ -128,43 +186,10 @@
 
   const loader = document.getElementById('acuant-loader');
 
+  var liveCaptureFailed = false
+
   function onAcuantSdkLoaded() {
     init();
-  }
-
-  function openFrontCamera() {
-    AcuantPassiveLiveness.startSelfieCapture(onCapture);
-  }
-  function setUIValues(id, value) {
-    let el = document.getElementById(id);
-    el.value = value;
-  }
-
-  function onCapture(image) {
-    loader.style.display = "block";
-    AcuantPassiveLiveness.postLiveness({
-      endpoint: Credential.liveness_endpoint,
-      token: btoa(Credential.passive_username + ':' + Credential.passive_password),
-      image: image,
-      subscriptionId: Credential.passive_subscriptionId
-    }, function (result) {
-      cameraBtn.style.display = "block";
-      if (result) {
-        if (result.LivenessResult) {
-          setUIValues("face-score", result.LivenessResult.Score);
-          setUIValues("face-result", result.LivenessResult.LivenessAssessment);
-        }
-        else {
-          setUIValues("face-score", "");
-          setUIValues("face-result", "");
-        }
-        setUIValues("face-transaction", result.TransactionId);
-        setUIValues("face-error-code", result.ErrorCode);
-        setUIValues("face-error-description", result.Error);
-      }
-      resultFace.style.display = "block";
-      loader.style.display = "none";
-    })
   }
 
   function init() {
@@ -188,22 +213,17 @@
     camera.style.display = "none";
     result.style.display = "block";
     cameraBtn.style.display = "block";
-    AcuantCameraUI.end();
   }
 
   function openCamera() {
-    if (AcuantCamera.isCameraSupported) {
-      cameraBtn.style.display = "none";
-      result.style.display = "none";
-      resultFace.style.display = "none";
-      camera.style.display = "block";
-    }
+    result.style.display = "none";
+    resultFace.style.display = "none";
 
     startCamera();
   }
 
   const options = {
-    text:{
+    text: {
       NONE: "ALIGN",
       SMALL_DOCUMENT: "MOVE CLOSER",
       GOOD_DOCUMENT: null,//null countdown
@@ -211,18 +231,62 @@
     }
   }
 
-  function startCamera() {
-    AcuantCameraUI.start((response) => {
+  var cameraCallback = {
+    onCaptured: function(response){
+      loader.style.display = "block";
+      camera.style.display = "none";
+    },
+    onCropped: function(response){
+      if (response) {
+        drawImageOnResult(response);
+      }
       closeCamera();
-      drawImageOnResult(response);
-    }, (error) => {
-      alert("Camera not supported\n" + error);
-      console.log(error);
-    }, options);
+      loader.style.display = "none";
+    },
+    onFrameAvailable: function(response){
+      //get each frame if needed
+      //console.log(response)
+    }
+  }
+
+  function startCamera() {
+    if (AcuantCamera.isCameraSupported && !liveCaptureFailed) {
+      cameraBtn.style.display = "none";
+      camera.style.display = "block";
+
+      AcuantCameraUI.start(cameraCallback, (error) => {
+        modal.style.display = "block";
+        camera.style.display = "none";
+        liveCaptureFailed = true;
+      }, options);
+    }
+    else {
+      startManualCapture()
+    }
+  }
+
+  function startManualCapture() {
+    AcuantCamera.startManualCapture({
+      onCropped: function (response) {
+        loader.style.display = "none";
+
+        if (response) {
+          closeCamera();
+          drawImageOnResult(response);
+        }
+        else {
+          closeCamera();
+        }
+      },
+      onCaptured: function () {
+        cameraBtn.style.display = "none";
+        modal.style.display = "none";
+        loader.style.display = "block";
+      }
+    });
   }
 
   function end() {
-    AcuantCameraUI.end();
     AcuantJavascriptWebSdk.end();
   }
 
@@ -247,10 +311,73 @@
     }
   }
 
+  //**************** Passive Liveness==========================
+
+  function setUIValues(id, value) {
+    let el = document.getElementById(id);
+    el.value = value;
+  }
+
+  function openFrontCamera() {
+    AcuantPassiveLiveness.startSelfieCapture((image) => {
+      cameraBtn.style.display = "none";
+      loader.style.display = "block";
+      AcuantPassiveLiveness.postLiveness({
+        endpoint: Credential.liveness_endpoint,
+        token: btoa(Credential.passive_username + ':' + Credential.passive_password),
+        image: image,
+        subscriptionId: Credential.passive_subscriptionId
+      }, function (result) {
+        cameraBtn.style.display = "block";
+        if (result) {
+          if (result.LivenessResult) {
+            setUIValues("face-score", result.LivenessResult.Score);
+            setUIValues("face-result", result.LivenessResult.LivenessAssessment);
+          }
+          else {
+            setUIValues("face-score", "");
+            setUIValues("face-result", "");
+          }
+          setUIValues("face-transaction", result.TransactionId);
+          setUIValues("face-error-code", result.ErrorCode);
+          setUIValues("face-error-description", result.Error);
+        }
+        resultFace.style.display = "block";
+        loader.style.display = "none";
+      })
+    });
+  }
+
+  //**************** Passive Liveness==========================
+
+  //**************** Custom Modal===========================
+  // Get the modal
+  var modal = document.getElementById("acuant-modal");
+
+  // Get the <span> element that closes the modal
+  var span = document.getElementsByClassName("close")[0];
+
+  // When the user clicks on <span> (x), close the modal
+  span.onclick = function () {
+    closeCamera();
+    modal.style.display = "none";
+  }
+
+  // When the user clicks anywhere outside of the modal, close it
+  window.onclick = function (event) {
+    if (event.target == modal) {
+      closeCamera();
+      modal.style.display = "none";
+    }
+  }
+  //**************** Custom Modal===========================
+
+
   const acuantConfig = {
     path: "/webSdk/dist/"
   }
 </script>
 <script async src="/webSdk/dist/AcuantJavascriptWebSdk.min.js"></script>
+<script async src="/app/Credential.js"></script>
 
 </html>

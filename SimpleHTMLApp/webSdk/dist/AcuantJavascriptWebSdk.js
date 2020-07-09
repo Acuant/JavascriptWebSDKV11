@@ -1,19 +1,14 @@
-var AcuantCameraUI = (function(){
+var AcuantCameraUI = (function () {
   var player = null;
 
   var videoCanvas = null;
   var videoContext = null;
 
-  var tempCanvas = document.createElement("canvas");
-  var tempContext = tempCanvas.getContext('2d');
-
-
   let svc = {
-      start: start,
-      end: end,
+    start: start,
+    end: end,
   };
 
-  var isPausing = false;
   var isStarted = false;
 
   var onDetectedResult = null;
@@ -22,7 +17,7 @@ var AcuantCameraUI = (function(){
   var timeout = null;
 
   var userOptions = {
-    text:{
+    text: {
       NONE: "ALIGN",
       SMALL_DOCUMENT: "MOVE CLOSER",
       GOOD_DOCUMENT: null,
@@ -32,69 +27,71 @@ var AcuantCameraUI = (function(){
 
   const TRIGGER_TIME = 2000;
 
-  function reset(){
+  function reset() {
     onDetectedResult = null;
-    isPausing = false;
-    tempContext.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
   }
 
-  function end(){
-    if(AcuantCamera.isCameraSupported){
-      reset();  
+  function end() {
+    if (AcuantCamera.isCameraSupported) {
+      reset();
+      AcuantCamera.end();
       player.removeEventListener('play', play, 0);
-      AcuantCamera.end();  
     }
     isStarted = false;
   }
 
-  function start(captureCb, errorCb, options){
-    if(options){
+  function start(captureCb, errorCb, options) {
+    if (options) {
       userOptions = options
     }
-    if(AcuantCamera.isCameraSupported){
-      if(!isStarted){
+    if (AcuantCamera.isCameraSupported) {
+      if (!isStarted) {
         isStarted = true;
         reset();
         startCamera(captureCb, errorCb);
       }
     }
-    else{
-      startManualCamera(captureCb, errorCb);
+    else {
+      errorCb("Camera not supported.");
     }
 
   }
 
-  function triggerCountDown(captureCb){
-    if(timeout === null){
-      timeout = setTimeout(function(){
+  function triggerCountDown(captureCb) {
+    if (timeout === null) {
+      timeout = setTimeout(function () {
         onDetectedResult.state = -1;
         capture(captureCb);
       }, TRIGGER_TIME);
     }
   }
 
-  function cancelCountDown(){
-    if(timeout){
+  function cancelCountDown() {
+    if (timeout) {
       clearTimeout(timeout);
       timeout = null;
     }
   }
 
-  function startCamera(captureCb, errorCb){
+  function startCamera(captureCb, errorCb) {
     AcuantCamera.start((response) => {
-      if(response){
-        if(onDetectedResult && onDetectedResult.state === -1){
+      if (response) {
+        if (onDetectedResult && onDetectedResult.state === -1) {
           return;
         }
-        else{
+        else {
+          if(captureCb.onFrameAvailable){
+            captureCb.onFrameAvailable(response);
+          }
+
           onDetectedResult = response;
-          if (onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.GOOD_DOCUMENT) {       
-            if(timeout === null){
+          if (onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.GOOD_DOCUMENT) {
+            if (timeout === null) {
               counter = new Date().getTime();
               triggerCountDown(captureCb);
               AcuantCamera.setRepeatFrameProcessor();
-            } 
-            else{
+            }
+            else {
               AcuantCamera.setRepeatFrameProcessor();
             }
           }
@@ -113,248 +110,229 @@ var AcuantCameraUI = (function(){
     player.addEventListener('play', play, 0);
   }
 
-  function startManualCamera(captureCb, errorCb){
-    AcuantCamera.startManualCapture({
-      onCropped: function(response){
-        if(response){
-          captureCb(response);
-        }
-        else{
-          errorCb();
-        }
-      },
-      onCaptured: function(){
-        //captured
-      }
-    });
-  }
-
   function capture(captureCb) {
     AcuantCamera.triggerCapture((response) => {
       if (response) {
-        if(document.fullscreenElement){
-          document.exitFullscreen().then(()=>{
-            captureCb(response);
+        end();
+
+        if (document.fullscreenElement) {
+          document.exitFullscreen().then(() => {
+            captureCb.onCaptured(response);
           })
         }
-        else{
-          captureCb(response);
+        else {
+          captureCb.onCaptured(response);
         }
+
+        AcuantCamera.crop(response.data, response.width, response.height, (result) => {
+          captureCb.onCropped(result);
+        });
       }
       else {
-        reset();  
+        reset();
         AcuantCamera.setRepeatFrameProcessor();
       }
     });
   }
 
-
-  function play(){
+  function play() {
     var $this = this; //cache
     (function loop() {
-      if (!$this.paused && !$this.ended) {
-        if(onDetectedResult && onDetectedResult.state  === -1){
-          if(!isPausing){
-            isPausing = true;
-            tempCanvas.width = videoCanvas.width;
-            tempCanvas.height = videoCanvas.height;
-            tempContext.drawImage(player, 0, 0, tempCanvas.width, tempCanvas.height);
-          }
-          videoContext.drawImage(tempCanvas, 0, 0);
-          handleUi();
-        }
-        else{
-          videoContext.drawImage($this, 0, 0, videoCanvas.width, videoCanvas.height);
-          handleUi();
-        }
-
-        setTimeout(loop, 1000 / 60); // drawing at 60fps
+      if (!$this.paused && !$this.ended && isStarted) {
+        videoContext.drawImage($this, 0, 0, videoCanvas.width, videoCanvas.height);
+        handleUi();
+        setTimeout(loop); // drawing at 60fps
       }
     })();
   }
 
-function drawText(text, fontWeight = 0.04, color = "#ffffff", showBackRect = true) {
-  let dimension = getDimension();
-  let currentOrientation = window.orientation;
-  let measured = videoContext.measureText(text);
+  function drawText(text, fontWeight = 0.04, color = "#ffffff", showBackRect = true) {
+    let dimension = getDimension();
+    let currentOrientation = window.orientation;
+    let measured = videoContext.measureText(text);
 
-  let offsetY = (Math.max(dimension.width, dimension.height) * 0.01);
-  let offsetX = (Math.max(dimension.width, dimension.height) * 0.02);
+    let offsetY = (Math.max(dimension.width, dimension.height) * 0.01);
+    let offsetX = (Math.max(dimension.width, dimension.height) * 0.02);
 
-  var x = (dimension.height / 2) - offsetX - (measured.width/3);
-  var y = -((dimension.width / 2) - offsetY);
-  var rotation = 90
+    var x = (dimension.height - offsetX - measured.width) / 2;
+    var y = -((dimension.width / 2) - offsetY);
+    var rotation = 90
 
-  if (currentOrientation !== 0) {
-    rotation = 0;
-    x = ((dimension.width / 2) - offsetY) - (measured.width/3);
-    y = (dimension.height / 2) - offsetX + (Math.max(dimension.width, dimension.height) * 0.04);
+    if (currentOrientation !== 0) {
+      rotation = 0;
+      x = (dimension.width - offsetY - measured.width) / 2;
+      y = (dimension.height / 2) - offsetX + (Math.max(dimension.width, dimension.height) * 0.04);
+    }
+
+    videoContext.rotate(rotation * Math.PI / 180);
+
+    if (showBackRect) {
+      videoContext.fillStyle = "rgba(0, 0, 0, 0.5)";
+      videoContext.fillRect(x - offsetY, y + offsetY, measured.width + offsetX, -(Math.max(dimension.width, dimension.height) * 0.05));
+    }
+
+    videoContext.font = (Math.ceil(Math.max(dimension.width, dimension.height) * fontWeight) || 0) + "px Sans-serif";
+    videoContext.fillStyle = color;
+    videoContext.fillText(text, x, y);
+    videoContext.restore();
   }
 
-  videoContext.rotate(rotation * Math.PI / 180);
-
-  if(showBackRect){
-    videoContext.fillStyle = "rgba(0, 0, 0, 0.5)";
-    videoContext.fillRect(x - offsetY, y + offsetY, measured.width + offsetX, -(Math.max(dimension.width, dimension.height) * 0.05));  
-  }
- 
-  videoContext.font = (Math.ceil(Math.max(dimension.width, dimension.height) * fontWeight) || 0) + "px Sans-serif";
-  videoContext.fillStyle = color;
-  videoContext.fillText(text, x, y);
-  videoContext.restore();
-}
-
-function isSafari(){
-  var ua = navigator.userAgent.toLowerCase(); 
-  if (ua.indexOf('safari') != -1) { 
+  function isSafari() {
+    var ua = navigator.userAgent.toLowerCase();
+    if (ua.indexOf('safari') != -1) {
       if (ua.indexOf('chrome') > -1) {
-          return false;
+        return false;
       } else {
-          return true;
+        return true;
       }
-  }
-  return false;
-}
-
-function getDimension(){
-  if(isSafari()){
-    return {
-      height: Math.min(document.body.clientHeight, videoCanvas.height),
-      width: Math.min(document.body.clientWidth, videoCanvas.width)
     }
-  }
-  else{
-    return {
-      height: Math.min(window.innerHeight, videoCanvas.height),
-      width: Math.min(window.innerWidth, videoCanvas.width)
-    }
-  }
-}
-
-function drawCorners(point, index){
-  let currentOrientation = window.orientation;
-  let dimension = getDimension();
-  var offsetX = dimension.width * 0.08;
-  var offsetY = dimension.height * 0.07; 
-
-  if(currentOrientation !== 0){
-    offsetX = dimension.width * 0.07;
-    offsetY = dimension.height * 0.08;
+    return false;
   }
 
-  switch(index.toString()){
-    case "1":
-      offsetX = -offsetX;
-      break;
-    case "2":
-      offsetX = -offsetX;
-      offsetY = -offsetY;
-      break;
-    case "3":
-      offsetY = -offsetY;
-      break;
-    default:
-      break;
-  }
-  drawCorner(point, offsetX, offsetY);
-}
-
-function handleUi() {
-  if(!onDetectedResult){
-    drawPoints("#000000");
-    drawText(userOptions.text.NONE);
-  }
-  else if (onDetectedResult.state === -1) {
-    drawPoints("#00ff00");
-    drawOverlay("rgba(0, 255, 0, 0.2)");
-    drawText(userOptions.text.CAPTURING, 0.05, "#00ff00", false);
-  }
-  else if (onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.GOOD_DOCUMENT) {
-    drawPoints("#ffff00");
-    drawOverlay("rgba(255, 255, 0, 0.2)");
-
-    if(userOptions.text.GOOD_DOCUMENT){
-      let diff = Math.ceil((TRIGGER_TIME - (new Date().getTime() - counter))/1000)
-      if(diff <= 0){
-        diff = 1;
+  function getDimension() {
+    if (isSafari()) {
+      return {
+        height: Math.min(document.body.clientHeight, videoCanvas.height),
+        width: Math.min(document.body.clientWidth, videoCanvas.width)
       }
-      drawText(userOptions.text.GOOD_DOCUMENT, 0.09, "#ff0000", false);
     }
-    else{
-      let diff = Math.ceil((TRIGGER_TIME - (new Date().getTime() - counter))/1000)
-      if(diff <= 0){
-        diff = 1;
+    else {
+      return {
+        height: videoCanvas.height,
+        width: videoCanvas.width
       }
-      drawText(diff + "...", 0.09, "#ff0000", false);
+    }
+  }
+
+  function drawCorners(point, index) {
+    let currentOrientation = window.orientation;
+    let dimension = getDimension();
+    var offsetX = dimension.width * 0.08;
+    var offsetY = dimension.height * 0.07;
+
+    if (currentOrientation !== 0) {
+      offsetX = dimension.width * 0.07;
+      offsetY = dimension.height * 0.08;
     }
 
+    switch (index.toString()) {
+      case "1":
+        offsetX = -offsetX;
+        break;
+      case "2":
+        offsetX = -offsetX;
+        offsetY = -offsetY;
+        break;
+      case "3":
+        offsetY = -offsetY;
+        break;
+      default:
+        break;
+    }
+    drawCorner(point, offsetX, offsetY);
   }
-  else if (onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.SMALL_DOCUMENT) {
-    drawPoints("#ff0000");
-    drawText(userOptions.text.SMALL_DOCUMENT);
-  }
-  else {
-    drawPoints("#000000");
-    drawText(userOptions.text.NONE);
-  }
-}
 
-function drawOverlay(style){
-  if(onDetectedResult && onDetectedResult.points &&  onDetectedResult.points.length === 4){
+  function handleUi() {
+    if (!onDetectedResult) {
+      drawPoints("#000000");
+      drawText(userOptions.text.NONE);
+    }
+    else if (onDetectedResult.state === -1) {
+      drawPoints("#00ff00");
+      drawOverlay("rgba(0, 255, 0, 0.2)");
+      drawText(userOptions.text.CAPTURING, 0.05, "#00ff00", false);
+    }
+    else if (onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.GOOD_DOCUMENT) {
+      drawPoints("#ffff00");
+      drawOverlay("rgba(255, 255, 0, 0.2)");
+
+      if (userOptions.text.GOOD_DOCUMENT) {
+        let diff = Math.ceil((TRIGGER_TIME - (new Date().getTime() - counter)) / 1000)
+        if (diff <= 0) {
+          diff = 1;
+        }
+        drawText(userOptions.text.GOOD_DOCUMENT, 0.09, "#ff0000", false);
+      }
+      else {
+        let diff = Math.ceil((TRIGGER_TIME - (new Date().getTime() - counter)) / 1000)
+        if (diff <= 0) {
+          diff = 1;
+        }
+        drawText(diff + "...", 0.09, "#ff0000", false);
+      }
+
+    }
+    else if (onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.SMALL_DOCUMENT) {
+      drawPoints("#ff0000");
+      drawText(userOptions.text.SMALL_DOCUMENT);
+    }
+    else {
+      drawPoints("#000000");
+      drawText(userOptions.text.NONE);
+    }
+  }
+
+  function drawOverlay(style) {
+    if (onDetectedResult && onDetectedResult.points && onDetectedResult.points.length === 4) {
+      videoContext.beginPath();
+
+      videoContext.moveTo(onDetectedResult.points[0].x, onDetectedResult.points[0].y);
+
+      for (var i = 1; i < onDetectedResult.points.length; i++) {
+        videoContext.lineTo(onDetectedResult.points[i].x, onDetectedResult.points[i].y);
+      }
+      videoContext.fillStyle = style;
+      videoContext.strokeStyle = "rgba(0, 0, 0, 0)";
+      videoContext.stroke();
+      videoContext.fill();
+    }
+  }
+
+  function drawCorner(point, offsetX, offsetY) {
     videoContext.beginPath();
-
-    videoContext.moveTo(onDetectedResult.points[0].x, onDetectedResult.points[0].y);
-
-    for(var i = 1; i< onDetectedResult.points.length;  i++){
-      videoContext.lineTo(onDetectedResult.points[i].x, onDetectedResult.points[i].y);
-    }
-    videoContext.fillStyle = style;
-    videoContext.strokeStyle = "rgba(0, 0, 0, 0)";
+    videoContext.moveTo(point.x, point.y);
+    videoContext.lineTo(point.x + offsetX, point.y)
     videoContext.stroke();
-    videoContext.fill();
+    videoContext.moveTo(point.x, point.y);
+    videoContext.lineTo(point.x, point.y + offsetY);
+    videoContext.stroke();
   }
-}
 
-function drawCorner(point, offsetX, offsetY){
-  videoContext.beginPath();
-  videoContext.moveTo(point.x, point.y);
-  videoContext.lineTo(point.x + offsetX, point.y)
-  videoContext.stroke();
-  videoContext.moveTo(point.x, point.y);
-  videoContext.lineTo(point.x, point.y + offsetY);
-  videoContext.stroke();
-}
-
-function drawPoints(fillStyle) {
-  let dimension = getDimension();
-  videoContext.lineWidth = (Math.ceil(Math.max(dimension.width, dimension.height) * 0.0025) || 1);
-  videoContext.strokeStyle = fillStyle;
-  if(onDetectedResult && onDetectedResult.points && (onDetectedResult.state === -1 || onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.GOOD_DOCUMENT)){
-    for (var i in onDetectedResult.points) {
-      drawCorners(onDetectedResult.points[i], i);
+  function drawPoints(fillStyle) {
+    let dimension = getDimension();
+    videoContext.lineWidth = (Math.ceil(Math.max(dimension.width, dimension.height) * 0.0025) || 1);
+    videoContext.strokeStyle = fillStyle;
+    if (onDetectedResult && onDetectedResult.points && (onDetectedResult.state === -1 || onDetectedResult.state === AcuantCamera.DOCUMENT_STATE.GOOD_DOCUMENT)) {
+      for (var i in onDetectedResult.points) {
+        drawCorners(onDetectedResult.points[i], i);
+      }
     }
-  }
-  else{
-    var center = {
-      x: dimension.width/2,
-      y: dimension.height/2
-    }
-    var offsetX = dimension.width/2.7;
-    var offsetY = dimension.height/3;
+    else {
+      var center = {
+        x: dimension.width / 2,
+        y: dimension.height / 2
+      }
+      var offsetX = dimension.width * 0.4;
+      var offsetY = dimension.height * 0.35;
 
-    let defaultCorners = [
-      { x: center.x - offsetX, y: center.y - offsetY },
-      { x: center.x + offsetX, y: center.y - offsetY },
-      { x: center.x + offsetX, y: center.y + offsetY }, 
-      { x: center.x - offsetX, y: center.y + offsetY}];
+      if(dimension.width > dimension.height){
+        offsetY = dimension.height * 0.4;
+        offsetX = dimension.width * 0.35;
+      }
+
+      let defaultCorners = [
+        { x: center.x - offsetX, y: center.y - offsetY },
+        { x: center.x + offsetX, y: center.y - offsetY },
+        { x: center.x + offsetX, y: center.y + offsetY },
+        { x: center.x - offsetX, y: center.y + offsetY }];
 
       defaultCorners.forEach((point, i) => {
         drawCorners(point, i);
       });
+    }
   }
-}
 
-return svc;
+  return svc;
 
 })();
 
@@ -380,9 +358,10 @@ var AcuantCamera = (function () {
         PASSPORT: 2
     }
 
-    const SMALL_DOC_DPI_SCALE = 0.19;
+    const SMALL_DOC_DPI_SCALE = 0.25;
     const LARGE_DOC_DPI_SCALE = 0.11719;
     var onDetectCallback = null;
+    var onErrorCallback = null;
     var onManualCaptureCallback = null;
     var isStarted = false;
 
@@ -394,7 +373,8 @@ var AcuantCamera = (function () {
         DOCUMENT_STATE: DOCUMENT_STATE,
         ACUANT_DOCUMENT_TYPE: ACUANT_DOCUMENT_TYPE,
         isCameraSupported: 'mediaDevices' in navigator && mobileCheck(),
-        setRepeatFrameProcessor: setRepeatFrameProcessor
+        setRepeatFrameProcessor: setRepeatFrameProcessor,
+        crop: crop
     };
 
     function iOSversion() {
@@ -406,15 +386,18 @@ var AcuantCamera = (function () {
         return ""
     }
 
+    function isFireFox(){
+        return navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+    }
+
     function checkIOSVersion() {
-        //return iOSversion() >= 13;
-        return true;
+        return iOSversion()[0] >= 13;
     }
 
     function mobileCheck() {
         var check = false;
-        (function (a) { if (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino|android|ipad|playbook|silk/i.test(a) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0, 4))) check = true; })(navigator.userAgent || navigator.vendor || window.opera);
-        return check || isIOS();
+        (function (a) { if (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino|android|playbook|silk/i.test(a) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0, 4))) check = true; })(navigator.userAgent || navigator.vendor || window.opera);  
+        return (check || isIOS()) && (!isFireFox());
     };
 
     function isIOS() {
@@ -424,52 +407,84 @@ var AcuantCamera = (function () {
     var userConfig = {
         targetWidth: (window.innerWidth || 950),
         targetHeight: (window.innerHeight),
-        frameScale: 0.75,
+        frameScale: 1,
         primaryConstraints: {
             video: {
                 facingMode: { exact: "environment" },
-                height: { ideal: 1440 },
-            }
-        },
-        secondaryConstraints: {
-            video: {
-                facingMode: { exact: "environment" },
-                width: { ideal: 1760 },
-                height: { ideal: 990 },
+                height: { min: 1440, ideal: 1440 },
+                aspectRatio: 1.777777778
             }
         }
     };
+    function enableCamera(stream){
+        isStarted = true;
+        player.srcObject = stream;
+        addEvents();
+        setRepeatFrameProcessor()
+        player.play();
+    }
 
-    function startCamera(constraints, errorCallback) {
-        if (!isStarted) {
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then((stream) => {
-                    isStarted = true;
-                    player.srcObject = stream;
-                    addEvents();
-                    setRepeatFrameProcessor()
-                    player.play();
-                })
-                .catch((error) => {
-                    if (typeof (errorCallback) === "function") {
-                        errorCallback(error);
-                    }
-                });
+    function callCameraError(error){
+        if (document.fullscreenElement) {
+            document.exitFullscreen().then(() => {
+                onErrorCallback(error);
+            })
         }
         else {
-            if (typeof (errorCallback) === "function") {
-                errorCallback("already started");
-            }
+            onErrorCallback(error);
         }
     }
 
-    function requestFullScreen(constraints, errorCallback) {
+    function getDevice(constraints, errorCallback){
+        navigator.mediaDevices.enumerateDevices()
+            .then(function(devices) {
+                var min = undefined;
+                devices.forEach(function(device) {
+                    if(device.label && device.label.indexOf("back") !== -1){
+                        let split = device.label.split(',')
+                        let type = parseInt(split[0][split[0].length -1]);
+
+                        if(type || type === 0){
+                            if(min === undefined || min > type){
+                                min = type;
+                                constraints.video.deviceId = device.deviceId;
+                            }
+                        }
+                    }
+                });
+                startCamera(constraints, errorCallback);
+            })
+            .catch(function(err) {
+                startCamera(onstraints, errorCallback);
+            });
+    }
+
+    function startCamera(constraints, errorCallback) {
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then((stream) => {
+                if (isSafari()) {
+                    enableCamera(stream);
+                }
+                else {
+                    requestFullScreen(stream);
+                }
+
+            
+            })
+            .catch((error) => {
+                if (typeof (errorCallback) === "function") {
+                    errorCallback(error);
+                }
+            });
+    }
+
+    function requestFullScreen(stream) {
         videoCanvas.requestFullscreen()
             .then(function () {
-                startCamera(constraints, errorCallback)
+                enableCamera(stream)
             })
             .catch(function (error) {
-                startCamera(constraints, errorCallback)
+                enableCamera(stream)
             });
 
     }
@@ -487,11 +502,15 @@ var AcuantCamera = (function () {
         else {
             videoContext = videoCanvas.getContext('2d');
             onDetectCallback = callback;
-            if (isSafari()) {
-                startCamera(userConfig.primaryConstraints, errorCallback);
+            onErrorCallback = errorCallback;
+
+            if (!isStarted) {
+                getDevice(userConfig.primaryConstraints, errorCallback);
             }
             else {
-                requestFullScreen(userConfig.primaryConstraints, errorCallback);
+                if (typeof (errorCallback) === "function") {
+                    errorCallback("already started");
+                }
             }
         }
     }
@@ -503,6 +522,11 @@ var AcuantCamera = (function () {
             manualCaptureInput.type = "file";
             manualCaptureInput.capture = "environment";
             manualCaptureInput.accept = "image/*";
+            manualCaptureInput.onclick = function(event) {
+                if(event && event.target){
+                    event.target.value = '';
+                }
+            }
         }
         manualCaptureInput.onchange = onManualCapture;
         manualCaptureInput.click();
@@ -553,11 +577,9 @@ var AcuantCamera = (function () {
         return -1;
     }
 
-    function onManualCapture(event) {
+    function onManualCapture(event) {        
         let file = event.target,
             reader = new FileReader();
-
-        onManualCaptureCallback.onCaptured();
 
         reader.onload = (e) => {
             let captureOrientation = getOrientation(e);
@@ -617,7 +639,11 @@ var AcuantCamera = (function () {
                     });
             }
         }
-        reader.readAsArrayBuffer(file.files[0]);
+        
+        if(file && file.files[0]){
+            onManualCaptureCallback.onCaptured();
+            reader.readAsArrayBuffer(file.files[0]);
+        }
     }
 
     function isSafari() {
@@ -654,7 +680,6 @@ var AcuantCamera = (function () {
             videoContext.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
 
             if (isSafari()) {
-
                 var scale = 0;
                 if (player.videoWidth > player.videoHeight) {
                     scale = (player.videoHeight / player.videoWidth);
@@ -697,7 +722,7 @@ var AcuantCamera = (function () {
     function onLoadedMetaData() {
         if (player.videoWidth + player.videoHeight < 1000) {
             endCamera();
-            startCamera(userConfig.secondaryConstraints);
+            callCameraError("Camera not supported");
         }
         else {
             var targetWidth = window.innerWidth;
@@ -716,7 +741,6 @@ var AcuantCamera = (function () {
                     videoCanvas.width = targetHeight * (player.videoWidth / player.videoHeight);
                     videoCanvas.height = targetHeight;
                 }
-
             }
             else {
                 if (player.videoWidth > player.videoHeight) {
@@ -747,16 +771,26 @@ var AcuantCamera = (function () {
         }
 
         setTimeout(function () {
-            if (videoCanvas.width > (640 / userConfig.frameScale) && videoCanvas.width > (480 / userConfig.frameScale)) {
-                hiddenCanvas.width = videoCanvas.width * userConfig.frameScale;
-                hiddenCanvas.height = videoCanvas.height * userConfig.frameScale;
+            let max = Math.max(videoCanvas.width, videoCanvas.height)
+            let min = Math.min(videoCanvas.width, videoCanvas.height)
+
+            if (max > 700 && min > 500) {
+                if (videoCanvas.width >= videoCanvas.height) {
+                    userConfig.frameScale = (700 / videoCanvas.width)
+                    hiddenCanvas.width = 700;
+                    hiddenCanvas.height = videoCanvas.height * userConfig.frameScale;
+                }
+                else {
+                    userConfig.frameScale = (700 / videoCanvas.height)
+                    hiddenCanvas.width = videoCanvas.width * userConfig.frameScale;
+                    hiddenCanvas.height = 700;
+                }
             }
             else {
+                userConfig.frameScale = 1;
                 hiddenCanvas.width = videoCanvas.width;
                 hiddenCanvas.height = videoCanvas.height;
             }
-            hiddenCanvas.width = videoCanvas.width * userConfig.frameScale
-            hiddenCanvas.height = videoCanvas.height * userConfig.frameScale
 
             hiddenContext.drawImage(player, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
             var imgData = hiddenContext.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
@@ -768,8 +802,6 @@ var AcuantCamera = (function () {
     function detect(imgData, width, height) {
         AcuantJavascriptWebSdk.detect(imgData, width, height, {
             onSuccess: function (response) {
-                let targetDpi = response.type === ACUANT_DOCUMENT_TYPE.PASSPORT ? LARGE_DOC_DPI_SCALE : SMALL_DOC_DPI_SCALE;
-
                 response.points.forEach(p => {
                     p.x = (p.x / userConfig.frameScale);
                     p.y = (p.y / userConfig.frameScale);
@@ -778,7 +810,7 @@ var AcuantCamera = (function () {
                 if (response.type === ACUANT_DOCUMENT_TYPE.NONE) {
                     response.state = DOCUMENT_STATE.NO_DOCUMENT;
                 }
-                else if (response.dpi < (targetDpi * Math.max(hiddenCanvas.height, hiddenCanvas.width)) || !response.isCorrectAspectRatio) {
+                else if ((Math.min(response.dimensions.width, response.dimensions.height) / Math.min(hiddenCanvas.width, hiddenCanvas.height) < 0.75 && Math.max(response.dimensions.width, response.dimensions.height) / Math.max(hiddenCanvas.width, hiddenCanvas.height) < 0.80) || !response.isCorrectAspectRatio) {
                     response.state = DOCUMENT_STATE.SMALL_DOCUMENT;
                 }
                 else {
@@ -811,7 +843,12 @@ var AcuantCamera = (function () {
         hiddenCanvas.height = player.videoHeight;
         hiddenContext.drawImage(player, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
         var imgData = hiddenContext.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
-        crop(imgData, hiddenCanvas.width, hiddenCanvas.height, callback);
+        
+        callback({
+            data: imgData,
+            width: hiddenCanvas.width,
+            height:  hiddenCanvas.height
+        });
     }
 
     function toBase64(img, isPassport, autoCapture, capturedOrientation) {

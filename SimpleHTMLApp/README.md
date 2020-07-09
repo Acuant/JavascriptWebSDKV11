@@ -1,7 +1,7 @@
-# Acuant JavaScript Web SDK v11.3.3
+# Acuant JavaScript Web SDK v11.4.0
 
 
-**June 2020**
+**July 2020**
 
 ----------
 
@@ -10,15 +10,12 @@
 This document provides detailed information about the Acuant JavaScript Web SDK. The JavaScript Web SDK allows developers to integrate image capture and processing functionality in their mobile web applications.
 
 ----------
-## Supported browsers
 
-The JavaScript Web SDK supports the following web browsers for live capture of ID documents:
+# Updates
 
-- **Android**: Chrome, Firefox11.
-- **iOS**: Safari
+**v11.4.0:** Please review [v11.4.0 Migration Details](docs/MigrationDetail11.4.0.md) for migration details.
 
-For other browsers, regular HTML capture is used.
-
+----------
 
 ## Modules
 
@@ -40,7 +37,7 @@ The SDK includes the following modules:
 - HTML5 Web Worker to process the images
 
 ----------
-### Setup
+## Setup
 
 1. Add the following dependencies on these files (**Note**:  These files should be accessible by HTTP in the public resource directory of the hosted application.):
 	- **AcuantJavaScriptSdk.min.js**
@@ -54,7 +51,7 @@ The SDK includes the following modules:
 
 1. Definte a custom path to load files (if different than root):
 
-		const acuantConfig = = {
+		const acuantConfig = {
 			path: "/custom/path/to/sdk/"
 		}
     	
@@ -135,6 +132,22 @@ The following may significantly increase errors or false results:
 			}
 		})
 		
+----------
+## Live Capture using WebRTC
+
+**Supported browsers**
+
+The JavaScript Web SDK supports the following web browsers for live capture of ID documents:
+
+- **Android**: Chrome
+- **iOS**: Safari, with iOS version <= 13.0 
+
+For other browsers, regular HTML capture is used.
+
+**Camera Preview**
+
+- **Android**: Android uses browser supported fullScreen mode for camera preview. User can exit out of this fullscreen mode. We recommend hiding all elements on page while camera is shown.
+- **iOS**: iOS will fill up screen height with camera preview. We recommend hiding all elements on page while camera is shown.
 
 
 ----------
@@ -147,7 +160,7 @@ The following may significantly increase errors or false results:
 1. Initialize the Worker. (**Note**: If worker has not been started, this call will start the Worker.)
 
 		function initialize(
-			token : string, //token provieded by Acuant
+			token : string, //token provided by Acuant
 			endpoint : string, //Acuant endpoint 
 			callback: object); //callback shown below
 	
@@ -193,14 +206,45 @@ The following may significantly increase errors or false results:
 	
 1. Start the Camera and get result.
 	
-		 AcuantCameraUI.start((response) => {
-		 	//use response if needed
-	      	//end
-	    }, (error) => {
-	      alert("Camera not supported\n" + error);
-	    }, options);
-	    
-1. End Camera.
+		var cameraCallback = {
+			onCaptured: function(response){
+				//document captured
+				//this is not the final result of processed image
+				//show a loading screen until onCropped is called
+			},
+			onCropped: function(response){
+				if (response) {
+					//use response
+				}
+				else{
+					//cropping error
+					//restart capture
+				}
+			},
+			onFrameAvailable: function(response){
+				//get each frame if needed
+				//console.log(response)
+				response = {
+					type: Number,
+					dimensions: Object,
+					dpi: Number,
+					isCorrectAspectRatio: Boolean,
+					points: Array,
+					state: Number => {
+				   		NO_DOCUMENT: 0,
+						SMALL_DOCUMENT: 1,
+						GOOD_DOCUMENT: 2
+					}
+				}
+			}
+		}
+	
+		AcuantCameraUI.start(cameraCallback, (error) => {
+			//constraint error or camera not supported
+			//show manual capture
+		}, options)
+		    
+1. End Camera. **NOTE** Once AcuantCameraUI onCaptured is called, the end API is internally executed.
 
 		AcuantCameraUI.end();
 ----------
@@ -275,7 +319,7 @@ The following may significantly increase errors or false results:
 					}, 
 					glare: Number, 
 					sharpness: Number,
-					isPassport: Boolean,
+					cardType: Number,//define card type, None = 0, ID = 1, Passport = 2
 					dpi: Number
             	}
 	      	}
@@ -284,7 +328,11 @@ The following may significantly increase errors or false results:
 	      	}
     	});    
     	
-1. Manual Capture:
+1. Manual Capture: 
+
+	**IMPORTANT**: AcuantCamera manual capture uses \<input type="file"/> html tags to access the native camera. This REQUIRES a user initiated event to start the camera.
+
+	**NOTE**: We recommend not hiding any UI elements when starting manual capture. Be aware users will be able to cancel out of the native camera screen.
 		
         AcuantCamera.startManualCapture({
             onCaptured: function(){
@@ -357,7 +405,7 @@ The following may significantly increase errors or false results:
 						dpi: Number,
 						sharpness: Number,
 						glare: Number,
-						isPassport: Boolean,
+						cardType: Number,//card type, 0 = None, 1 = ID, 2 = Passport
 						image:{
 							data: String,
 							width: Number,
