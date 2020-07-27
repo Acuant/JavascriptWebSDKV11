@@ -1,4 +1,4 @@
-# Acuant JavaScript Web SDK v11.4.0
+# Acuant JavaScript Web SDK v11.4.1
 
 
 **July 2020**
@@ -28,7 +28,7 @@ The SDK includes the following modules:
 - Additional Camera UI provided by Acuant.
 - Uses Acuant library to detect documents, crop, calculate sharpness and glare.
 
-**Acuant Image Service (AcuantImageProcessingService.wasm):**
+**Acuant Image Service (AcuantImageProcessingService.js.mem):**
 
 - Interface file to interact with **AcuantImageProcessingWorker**
 
@@ -41,7 +41,7 @@ The SDK includes the following modules:
 
 1. Add the following dependencies on these files (**Note**:  These files should be accessible by HTTP in the public resource directory of the hosted application.):
 	- **AcuantJavaScriptSdk.min.js**
-	- **AcuantImageProcessingService.wasm**
+	- **AcuantImageProcessingService.js.mem**
 	- **AcuantImageProcessingWorker.min.js**
 	- **AcuantImageProcessingWorker.wasm**
 
@@ -149,6 +149,11 @@ For other browsers, regular HTML capture is used.
 - **Android**: Android uses browser supported fullScreen mode for camera preview. User can exit out of this fullscreen mode. We recommend hiding all elements on page while camera is shown.
 - **iOS**: iOS will fill up screen height with camera preview. We recommend hiding all elements on page while camera is shown.
 
+**Tap to Capture**
+
+- Tap to capture will be enabled for devices that can support the resolution constraints, but cannot support the image processing.
+- Upon launching the camera, we will check the speed of image processing. If the speed is above the threshold, tap to capture will be enabled.
+
 
 ----------
 ## Initialize and Start Web Worker
@@ -200,7 +205,8 @@ For other browsers, regular HTML capture is used.
 				NONE: "ALIGN",
 				SMALL_DOCUMENT: "MOVE CLOSER",
 				GOOD_DOCUMENT: null,//default countdown
-				CAPTURING: "CAPTURING"
+				CAPTURING: "CAPTURING",
+				TAP_TO_CAPTURE: "TAP TO CAPTURE"
 			}
 		};
 	
@@ -335,7 +341,7 @@ For other browsers, regular HTML capture is used.
 	**NOTE**: We recommend not hiding any UI elements when starting manual capture. Be aware users will be able to cancel out of the native camera screen.
 		
         AcuantCamera.startManualCapture({
-            onCaptured: function(){
+            onCaptured: function(response){
                 //this will be called after user finishes capture
                 //then proceeds to crop
                 //onCropped will be called after finished
@@ -390,10 +396,7 @@ For other browsers, regular HTML capture is used.
 			data : object, //image data from context object shown below
 			width : number, //width of image
 			height: number,  //height of image
-			callback: object, //callback shown below
-			includeSharpness: boolean = true, //include sharpness calculation. default=true
-			includeGlare: boolean = true); //include glare calculation. default = true
-			
+			callback: object, //callback shown below);			
 		let canvas = document.createElement('canvas'),
 			context = canvas.getContext('2d'),
 			context.drawImage(YOUR_IMAGE, 0, 0, MAX_WIDTH = 2560, MAX_HEIGHT = 1920),
@@ -421,9 +424,7 @@ For other browsers, regular HTML capture is used.
 			imgData,
 			width, 
 			height,  
-        	callback, 
-        	false, 
-        	true);
+        	callback);
 
 
 

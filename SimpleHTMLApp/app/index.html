@@ -157,15 +157,14 @@
 
 <script>
   var Credential = {
-      passive_username:"",
-      passive_password:"",
-      id_username: "",
-      id_password: "",
-      passive_subscriptionId:"",
-      id_endpoint:"https://services.assureid.net",
-      liveness_endpoint:"https://us.passlive.acuant.net"
+    passive_username:"",
+    passive_password:"",
+    id_username: "",
+    id_password: "",
+    passive_subscriptionId:"",
+    id_endpoint:"https://services.assureid.net",
+    liveness_endpoint:"https://us.passlive.acuant.net"
   }
-    
   const player = document.getElementById('acuant-player');
 
   const videoCanvas = document.getElementById('acuant-video-canvas');
@@ -227,7 +226,8 @@
       NONE: "ALIGN",
       SMALL_DOCUMENT: "MOVE CLOSER",
       GOOD_DOCUMENT: null,//null countdown
-      CAPTURING: "CAPTURING"
+      CAPTURING: "CAPTURING",
+      TAP_TO_CAPTURE: "TAP TO CAPTURE"
     }
   }
 
@@ -278,7 +278,7 @@
           closeCamera();
         }
       },
-      onCaptured: function () {
+      onCaptured: function (response) {
         cameraBtn.style.display = "none";
         modal.style.display = "none";
         loader.style.display = "block";
@@ -378,6 +378,5 @@
   }
 </script>
 <script async src="/webSdk/dist/AcuantJavascriptWebSdk.min.js"></script>
-<script async src="/app/Credential.js"></script>
 
 </html>
