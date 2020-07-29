@@ -28,6 +28,15 @@ const initialState = {
         cardType: 0,
         orientation: 0,
         sidesLeft: 2
+    },
+    captureProperties:{
+        image:{
+            data:"",
+            width: 0,
+            height: 0
+        },
+        glare: -1,
+        sharpness: -1
     }
 };
 
@@ -36,7 +45,7 @@ export const history = createHistory({basename: process.env.REACT_APP_BASENAME})
 const config = {
     key: 'idscango',
     storage,
-    blacklist: ['config', 'processedData', 'idProperties']
+    blacklist: ['config', 'processedData', 'idProperties', 'captureProperties'] 
 };
 
 const reducer = persistCombineReducers(config, rootReducer);

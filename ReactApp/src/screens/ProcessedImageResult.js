@@ -16,22 +16,18 @@ class ProcessedImageResult extends Component {
     }
 
     proceedToNextStep() {
-        let processedData = this.props.location.state;
-
-        this.sendImageToAPI(this.dataURLToBlob(processedData.cardImage));
+        this.sendImageToAPI(this.dataURLToBlob(this.props.cardImage));
     }
 
     processClassification(classificationData) {
-        let processedData = this.props.location.state;
-        processedData.classificationData = classificationData;
         this.setProcessing(false);
 
-        if (processedData.classificationData && processedData.classificationData.PresentationChanged) {
+        if (classificationData && classificationData.PresentationChanged) {
             this.props.setCardOrientation(0);
         } else {
             this.props.setCardOrientation(1);
         }
-        if (processedData.classificationData && processedData.classificationData.Type.Size !== 3 || this.props.cardType === 2) {
+        if (classificationData && classificationData.Type.Size !== 3 || this.props.cardType === 2) {
             this.props.decrementSidesLeft();
 
             if (this.props.sidesLeft === 1) {
@@ -135,15 +131,13 @@ class ProcessedImageResult extends Component {
     }
 
     renderTitleText() {
-        let processedData = this.props.location.state;
-        if (processedData.blurry) return "Image appears blurry. Please retry.";
-        if (processedData.hasGlare) return "Image has glare. Please retry.";
+        if (this.props.blurry) return "Image appears blurry. Please retry.";
+        if (this.props.hasGlare) return "Image has glare. Please retry.";
         return "Ensure all texts are visible."
     }
 
 
     render() {
-        let processedData = this.props.location.state;
         if (this.state.processing) {
             return <Processing />
         }
@@ -154,23 +148,22 @@ class ProcessedImageResult extends Component {
 
                 <div className='body column capture_photo'>
 
-                    {processedData.blurry &&
+                    {this.props.blurry &&
 
                         <div className='column description_container'>
                             <img alt='idscango' className='icon' src={require('../assets/images/icon_attention@2x.png')} />
                             <p className={'description error'}>{this.renderTitleText()}</p>
                         </div>
-
                     }
 
                     <div className='row wrapper description_container'>
-                        {!processedData.blurry && <p className={'description'}>{this.renderTitleText()}</p>}
+                        {!this.props.blurry && <p className={'description'}>{this.renderTitleText()}</p>}
                     </div>
 
                     <div className="capture_group">
 
                         <div className='row wrapper capture_container'>
-                            {processedData.cardImage && <img alt={'idscango'} src={processedData.cardImage} className='capture'/>}
+                            {this.props.cardImage && <img alt={'idscango'} src={this.props.cardImage} className='capture'/>}
                         </div>
 
                         <div className="wrapper column capture_controls">
@@ -178,7 +171,7 @@ class ProcessedImageResult extends Component {
                             <a className={'btn'} onClick={() => this.proceedToNextStep()}>
                                 <p className={'buttonBgText'}>Continue with this image</p>
                             </a>
-                            {!processedData.orientation && <div className={'btn outline'} onClick={() => this.retryPhoto()}>
+                            {<div className={'btn outline'} onClick={() => this.retryPhoto()}>
                                 <p className={'buttonBdText'}>Retry</p>
                             </div>}
 
@@ -200,7 +193,10 @@ function mapStateToProps(state) {
         cardType: state.idProperties.cardType,
         sidesLeft: state.idProperties.sidesLeft,
         frontSubmitted: state.config.frontSubmitted,
-        backSubmitted: state.config.backSubmitted
+        backSubmitted: state.config.backSubmitted,
+        cardImage: state.captureProperties.image.data,
+        blurry: state.captureProperties.sharpness < 50,
+        hasGlare: state.captureProperties.glare < 50
     };
 }
 
