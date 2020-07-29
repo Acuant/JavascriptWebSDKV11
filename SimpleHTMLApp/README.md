@@ -3,15 +3,22 @@
 
 **July 2020**
 
+See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
+
 ----------
 
-# Introduction
+## License
+This software is subject to Acuant's end user license agreement (EULA), which can be found [here](docs/EULA.pdf).
+
+----------
+
+## Introduction
  
 This document provides detailed information about the Acuant JavaScript Web SDK. The JavaScript Web SDK allows developers to integrate image capture and processing functionality in their mobile web applications.
 
 ----------
 
-# Updates
+## Updates
 
 **v11.4.0:** Please review [v11.4.0 Migration Details](docs/MigrationDetail11.4.0.md) for migration details.
 
