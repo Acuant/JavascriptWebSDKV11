@@ -1,5 +1,10 @@
 # Acuant idScanGo - Web #
 
+## License
+This software is subject to Acuant's end user license agreement (EULA), which can be found [here](EULA.pdf).
+
+## Introduction
+
 ### Setup ###
 
 This project works with **Node JS 6.10** and above. Please ensure that you have it installed otherwise please follow up [this link](https://nodejs.org/en/).
