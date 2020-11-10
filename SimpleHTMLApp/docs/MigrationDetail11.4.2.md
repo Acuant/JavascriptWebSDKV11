@@ -1,7 +1,17 @@
-# Migration Details JavaScript Web SDK v11.4.0
+# Migration Details JavaScript Web SDK v11.4.*
 
+**v11.4.2 November 2020**
 
-**July 2020**
+## ACAS endpoint now required for initialization.
+
+- Replace the old id_endpoint with the new acas_endpoint in the initialize method.
+
+	These are the endpoints per region:
+	USA: https://us.acas.acuant.net
+	EU: https://eu.acas.acuant.net
+	AUS: https://aus.acas.acuant.net
+
+**v11.4.0 July 2020**
 
 ----------
 ## Updated Supported Browsers for Live Capture

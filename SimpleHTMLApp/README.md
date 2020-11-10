@@ -1,7 +1,7 @@
-# Acuant JavaScript Web SDK v11.4.1
+# Acuant JavaScript Web SDK v11.4.2
 
 
-**July 2020**
+**November 2020**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -20,7 +20,7 @@ This document provides detailed information about the Acuant JavaScript Web SDK.
 
 ## Updates
 
-**v11.4.0:** Please review [v11.4.0 Migration Details](docs/MigrationDetail11.4.0.md) for migration details.
+**v11.4.2:** Please review [v11.4.2 Migration Details](docs/MigrationDetail11.4.2.md) for migration details.
 
 ----------
 
@@ -31,9 +31,9 @@ The SDK includes the following modules:
 **Acuant JavaScript SDK (AcuantJavaScriptSdk.min.js):**
 
 - Live Document Capture functionality 
-- Face Capture with Passive Liveness available with credentials
-- Additional Camera UI provided by Acuant.
 - Uses Acuant library to detect documents, crop, calculate sharpness and glare.
+- Additional Camera UI provided by Acuant.
+- Face Capture with Passive Liveness using credentials
 
 **Acuant Image Service (AcuantImageProcessingService.js.mem):**
 
@@ -54,9 +54,9 @@ The SDK includes the following modules:
 
 1. Load AcuantJavascriptSdk script:
 	
-		<script async src="AcuantJavascriptSdk.min.js" />
+		<script async src="AcuantJavascriptWebSdk.min.js"></script>
 
-1. Definte a custom path to load files (if different than root):
+1. Define a custom path to load files (if different than root):
 
 		const acuantConfig = {
 			path: "/custom/path/to/sdk/"
@@ -70,77 +70,9 @@ The SDK includes the following modules:
 	    }
 	     
 ----------
-## AcuantPassiveLiveness
-
-Acuant recommends using the **LiveAssessment** property rather than the score) to evaluate response. **AcuantPassiveLiveness.startSelfieCapture** will return a rescaled image.
-
-Follow these recommendations to effectively process an image for passive liveness:
-#### Image requirements
-- **Height**:  minimum 480 pixels; recommended 720 or 1080 pixels
-- **Compression**:  Image compression is not recommended (JPEG 70 level or above is acceptable). For best results, use uncompressed images.
-
-#### Face requirements
-- Out-of-plane rotation:  Face pitch and yaw angle: from -20 to 20 degrees +/-3 degrees
-- In-plane rotation:  Face roll angle: from -30 to 30 degrees +/- 3 degrees
-- Pupillary distance:  Minimum distance between the eyes 90 +/- 5 pixels
-- Face size: Minimum 200 pixels in either dimension
-- Faces per image: 1
-- Sunglasses: Must be removed
-
-#### Capture requirements
-The following may significantly increase errors or false results:
-
-- Using a motion blur effect
-- Texture filtering
-- A spotlight on the face and nearest surroundings
-- An environment with poor lighting or colored light
-
-**Note**  The use of fish-eye lenses is not supported by this API.
-
-### Start face capture and send  Passive Liveness request
-
-1. Start face capture.
-
-		AcuantPassiveLiveness.startSelfieCapture(callback:function(base64img){
-			//called with result
-		})
-		
-1. Send Passive Liveness Request.
-
-		AcuantPassiveLiveness.postLiveness({
-			endpoint: "ACUANT_PASSIVE_LIVENESS_ENDPOINT",
-			token: "ACUANT_PASSIVE_LIVENESS_TOKEN",
-			subscriptionId: "ACUANT_PASSIVE_LIVENESS_SUBSCRIPTIONID",
-			image: base64img
-		}, function(result){
-			result = {
-				LivenessResult = {
-					LivenessAssessment : String = 
-						//POSSIBLE VALUES
-						"Live", 
-						"NotLive",
-						"PoorQuality", 
-						"Error";
-					Score: 0
-				},
-				Error: "",//error description
-				ErrorCode: String = 
-					//POSSIBLE VALUES
-					"Unknown", 
-					"FaceTooClose", 
-					"FaceNotFound", 
-					"FaceTooSmall", 
-					"FaceAngleTooLarge", 
-					"FailedToReadImage", 
-					"InvalidRequest", 
-					"InvalidRequestSettings",
-					"Unauthorized", 
-					"NotFound"
-			}
-		})
-		
-----------
 ## Live Capture using WebRTC
+
+Live capture offers guidance to the user to position documents and initiates autocapture when detected. This feature is present only when WebRTC is available in the browser. 
 
 **Supported browsers**
 
@@ -149,7 +81,7 @@ The JavaScript Web SDK supports the following web browsers for live capture of I
 - **Android**: Chrome
 - **iOS**: Safari, with iOS version <= 13.0 
 
-For other browsers, regular HTML capture is used.
+For other browsers that do not support WebRTC, the device's camera app (manual capture) is used.
 
 **Camera Preview**
 
@@ -159,7 +91,7 @@ For other browsers, regular HTML capture is used.
 **Tap to Capture**
 
 - Tap to capture will be enabled for devices that can support the resolution constraints, but cannot support the image processing.
-- Upon launching the camera, we will check the speed of image processing. If the speed is above the threshold, tap to capture will be enabled.
+- When the camera is launched, the image processing speed is automatically checked. If the speed is above the threshold set at 300ms, live document detection and autocapture features are disabled and switched to tap to capture. The user will have to manually capture the document.
 
 
 ----------
@@ -172,14 +104,14 @@ For other browsers, regular HTML capture is used.
 1. Initialize the Worker. (**Note**: If worker has not been started, this call will start the Worker.)
 
 		function initialize(
-			token : string, //token provided by Acuant
-			endpoint : string, //Acuant endpoint 
+			token : string, //Acuant credentials in base64 (basic auth format id:pass)
+			endpoint : string, //endpoint for Acuant's ACAS server
 			callback: object); //callback shown below
 	
 		var callback = {
 			onSuccess:function(){
 			},
-			onFail:function(){
+			onFail:function(code, description){
 			}
 		}
 
@@ -195,7 +127,7 @@ For other browsers, regular HTML capture is used.
 ----------
 ## AcuantCameraUI
 
-- Uses AcuantCamera to access native camera.
+- Uses AcuantCamera to access device's native camera. AcuantCameraUI applies to the WebRTC live capture UI. 
 - Default implementation of UI. Use AcuantCamera directly for any custom UI.
 
 **Prerequisite**: Initialize Acuant Worker (see Step 2 above).
@@ -263,13 +195,13 @@ For other browsers, regular HTML capture is used.
 ----------
 
 ## AcuantCamera
-
+- WebRTC is used for live capture when available; otherwise, use manual capture.
 **Prerequisite:**
 	Initialize Acuant Worker (see Step 2 above).
 		
 1. Add HTML:
-
-	  	<video id="acuant-player" controls autoplay style="display:none;" playsinline></video>
+		
+		<video id="acuant-player" controls autoplay style="display:none;" playsinline></video>
 		<canvas id="acuant-video-canvas" width="100%" height="auto"></canvas>
 		
 1. Start the Camera Preview:
@@ -298,7 +230,7 @@ For other browsers, regular HTML capture is used.
 
 		 AcuantCamera.start((response) => {
 	      	response = {
-  	      		//type of document
+	      		//type of document
 	      		type: AcuantCamera.ACUANT_DOCUMENT_TYPE,
 	      		
 	      		//state of camera
@@ -341,11 +273,11 @@ For other browsers, regular HTML capture is used.
 	      	}
     	});    
     	
-1. Manual Capture: 
+1. Start manual capture (when WebRTC live capture is unavailable) 
 
-	**IMPORTANT**: AcuantCamera manual capture uses \<input type="file"/> html tags to access the native camera. This REQUIRES a user initiated event to start the camera.
+	**IMPORTANT**: AcuantCamera manual capture uses `<input type="file"/>` html tags to access the device's camera app. This REQUIRES a user initiated event to start the camera.
 
-	**NOTE**: We recommend not hiding any UI elements when starting manual capture. Be aware users will be able to cancel out of the native camera screen.
+	**NOTE**: Acuant recommends not hiding any UI elements when starting manual capture. Be aware users will be able to cancel out of the device's camera app screen.
 		
         AcuantCamera.startManualCapture({
             onCaptured: function(response){
@@ -436,7 +368,78 @@ For other browsers, regular HTML capture is used.
 
 
 -------------------------------------------------------------
+## Face Capture and Acuant Passive Liveness
+**Prerequisite:**
+	Credentials with Acuant Passive Liveness enabled
 
+Acuant recommends using the **LiveAssessment** property rather than the score) to evaluate response. **AcuantPassiveLiveness.startSelfieCapture** will return a rescaled image.
+
+Follow these recommendations to effectively process an image for passive liveness:
+#### Image requirements
+- **Height**:  minimum 480 pixels; recommended 720 or 1080 pixels
+- **Compression**:  Image compression is not recommended (JPEG 70 level or above is acceptable). For best results, use uncompressed images.
+
+#### Face requirements
+- Out-of-plane rotation:  Face pitch and yaw angle: from -20 to 20 degrees +/-3 degrees
+- In-plane rotation:  Face roll angle: from -30 to 30 degrees +/- 3 degrees
+- Pupillary distance:  Minimum distance between the eyes 90 +/- 5 pixels
+- Face size: Minimum 200 pixels in either dimension
+- Faces per image: 1
+- Sunglasses: Must be removed
+
+#### Capture requirements
+The following may significantly increase errors or false results:
+
+- Using a motion blur effect
+- Texture filtering
+- A spotlight on the face and nearest surroundings
+- An environment with poor lighting or colored light
+
+**Note**  Face live capture and guidance is not supported, only manual capture is available. Also, the use of fish-eye lenses is not supported by this API.
+
+### Start face capture and send Passive Liveness request
+
+1. Start face capture with device's camera app.
+
+		AcuantPassiveLiveness.startSelfieCapture(callback:function(base64img){
+			//called with result
+		})
+		
+1. Upload face image and send request for Passive Liveness result.
+
+		AcuantPassiveLiveness.postLiveness({
+			endpoint: "ACUANT_PASSIVE_LIVENESS_ENDPOINT",
+			token: "ACUANT_PASSIVE_LIVENESS_TOKEN",
+			subscriptionId: "ACUANT_PASSIVE_LIVENESS_SUBSCRIPTIONID",
+			image: base64img
+		}, function(result){
+			result = {
+				LivenessResult = {
+					LivenessAssessment : String = 
+						//POSSIBLE VALUES
+						"Live", 
+						"NotLive",
+						"PoorQuality", 
+						"Error";
+					Score: 0
+				},
+				Error: "",//error description
+				ErrorCode: String = 
+					//POSSIBLE VALUES
+					"Unknown", 
+					"FaceTooClose", 
+					"FaceNotFound", 
+					"FaceTooSmall", 
+					"FaceAngleTooLarge", 
+					"FailedToReadImage", 
+					"InvalidRequest", 
+					"InvalidRequestSettings",
+					"Unauthorized", 
+					"NotFound"
+			}
+		})
+		
+----------
 **Copyright 2020 Acuant Inc. All rights reserved.**
 
 This document contains proprietary and confidential information and creative works owned by Acuant and its respective licensors, if any. Any use, copying, publication, distribution, display, modification, or transmission of such technology, in whole or in part, in any form or by any means, without the prior express written permission of Acuant is strictly prohibited. Except where expressly provided by Acuant in writing, possession of this information shall not be construed to confer any license or rights under any Acuant intellectual property rights, whether by estoppel, implication, or otherwise.

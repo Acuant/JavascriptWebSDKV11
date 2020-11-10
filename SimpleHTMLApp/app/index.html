@@ -124,21 +124,24 @@
       <input class="form-control col-md-3" id="face-transaction" value="" />
     </div>
   </div>
-  <div id="result-id" style="display:none;">
+  <div id="result-id" style="display:none">
     <div class="row text-center">
       <div class="col-md-12">
         <canvas id="result-canvas" width="auto" height="auto"></canvas>
       </div>
     </div>
-    <div class="row text-center">
-      <div class="col-md-4">
+    <div class="row text-center" style="margin-top:1%">
+      <div class="col-md-3">
         <label for="sharpness">Sharpness: </label><input id="sharpness" value="" />
       </div>
-      <div class="col-md-4">
+      <div class="col-md-3">
         <label for="glare">Glare: </label><input id="glare" value="" />
       </div>
-      <div class="col-md-4">
+      <div class="col-md-3">
         <label for="dpi">DPI: </label><input id="dpi" value="" />
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-success" onclick="saveImage()">Save</button>
       </div>
     </div>
   </div>
@@ -162,7 +165,7 @@
     id_username: "",
     id_password: "",
     passive_subscriptionId:"",
-    id_endpoint:"https://services.assureid.net",
+    acas_endpoint: "https://acas.acuant.net",
     liveness_endpoint:"https://us.passlive.acuant.net"
   }
   const player = document.getElementById('acuant-player');
@@ -186,6 +189,7 @@
   const loader = document.getElementById('acuant-loader');
 
   var liveCaptureFailed = false
+  var currentResult = {};
 
   function onAcuantSdkLoaded() {
     init();
@@ -193,13 +197,13 @@
 
   function init() {
     let base64Token = btoa(Credential.id_username + ':' + Credential.id_password);
-    AcuantJavascriptWebSdk.initialize(base64Token, Credential.id_endpoint, {
+    AcuantJavascriptWebSdk.initialize(base64Token, Credential.acas_endpoint, {
       onSuccess: function () {
         showCameraButton();
         console.log("intialize succeded");
       },
-      onFail: function () {
-        console.log("intialize failed");
+      onFail: function (code, description) {
+        console.log("intialize failed " + code + ": " + description);
       }
     });
   }
@@ -232,18 +236,18 @@
   }
 
   var cameraCallback = {
-    onCaptured: function(response){
+    onCaptured: function (response) {
       loader.style.display = "block";
       camera.style.display = "none";
     },
-    onCropped: function(response){
+    onCropped: function (response) {
       if (response) {
         drawImageOnResult(response);
       }
       closeCamera();
       loader.style.display = "none";
     },
-    onFrameAvailable: function(response){
+    onFrameAvailable: function (response) {
       //get each frame if needed
       //console.log(response)
     }
@@ -308,7 +312,18 @@
         window.scrollTo(0, window.screen.height);
       };
       image.src = result.image.data;
+      currentResult = result.image.data;
     }
+  }
+
+  function saveImage() {
+    var link = document.createElement("a");
+
+    document.body.appendChild(link); // for Firefox
+
+    link.setAttribute("href", currentResult);
+    link.setAttribute("download", "testJavascript.jpg");
+    link.click();
   }
 
   //**************** Passive Liveness==========================
@@ -377,6 +392,6 @@
     path: "/webSdk/dist/"
   }
 </script>
-<script async src="/webSdk/dist/AcuantJavascriptWebSdk.min.js"></script>
+<script async src="/webSdk/dist/AcuantJavascriptWebSdk.min.js" charset="utf-8"></script>
 
 </html>
