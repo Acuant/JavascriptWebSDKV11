@@ -2,7 +2,7 @@ var AcuantConfig = (function(){
     'use strict';
 
     return {
-        acuantVersion: "11.4.2",
+        acuantVersion: "11.4.3",
         cvmlVersion: "4.2.3"
     };
 })();
@@ -80,7 +80,7 @@ var AcuantCameraUI = (function () {
     if (timeout === null) {
       timeout = setTimeout(function () {
         onDetectedResult.state = UI_STATE.CAPTURING;
-        capture(captureCb);
+        capture(captureCb, "AUTO");
       }, TRIGGER_TIME);
     }
   }
@@ -151,7 +151,7 @@ var AcuantCameraUI = (function () {
   }
 
   function onTap(event){
-    capture(event.currentTarget.callback);
+    capture(event.currentTarget.callback, "TAP");
   }
 
   function startCamera(captureCb, errorCb) {
@@ -179,7 +179,7 @@ var AcuantCameraUI = (function () {
     player.addEventListener('play', play, 0);
   }
 
-  function capture(captureCb) {
+  function capture(captureCb, capType) {
     AcuantCamera.triggerCapture((response) => {
       end();
       if (document.fullscreenElement) {
@@ -191,7 +191,7 @@ var AcuantCameraUI = (function () {
         captureCb.onCaptured(response);
       }
 
-      AcuantCamera.crop(response.data, response.width, response.height, (result) => {
+      AcuantCamera.crop(response.data, response.width, response.height, capType, (result) => {
         captureCb.onCropped(result);
       });
     });
@@ -703,7 +703,7 @@ var AcuantCamera = (function () {
                 AcuantJavascriptWebSdk.crop(imgData, width, height,
                     {
                         onSuccess: function (result) {
-                            result.image.data = toBase64(result, false, captureOrientation);
+                            result.image.data = toBase64(result, false, "MANUAL", captureOrientation);
                             onManualCaptureCallback.onCropped(result);
                         },
 
@@ -899,11 +899,11 @@ var AcuantCamera = (function () {
         });
     }
 
-    function crop(imgData, width, height, callback) {
+    function crop(imgData, width, height, capType, callback) {
 
         AcuantJavascriptWebSdk.crop(imgData, width, height, {
             onSuccess: function (response) {
-                response.image.data = toBase64(response, true);
+                response.image.data = toBase64(response, true, capType);
                 callback(response);
             },
             onFail: function () {
@@ -925,7 +925,7 @@ var AcuantCamera = (function () {
         });
     }
 
-    function toBase64(result, autoCapture, capturedOrientation) {
+    function toBase64(result, autoCapture, capType, capturedOrientation) {
         hiddenCanvas.width = result.image.width;
         hiddenCanvas.height = result.image.height;
 
@@ -950,12 +950,13 @@ var AcuantCamera = (function () {
             }
         }
 
-        let base64Img = hiddenCanvas.toDataURL("image/jpeg", 1.0);
+        let base64Img = hiddenCanvas.toDataURL("image/jpeg");
 
-        return addExif(result, base64Img)
+
+        return addExif(result, capType, base64Img)
     }
 
-    function addExif(result, base64Img){
+    function addExif(result, capType, base64Img){
         var zeroth = {};
         zeroth[piexif.ImageIFD.Make] = navigator.platform;
         zeroth[piexif.ImageIFD.Model] = navigator.userAgent;
@@ -984,7 +985,8 @@ var AcuantCamera = (function () {
                 "version": AcuantConfig.cvmlVersion
             },
             "device":{
-                "version": getBrowserVersion()
+                "version": getBrowserVersion(),
+                "capturetype": capType
             }
         });
   

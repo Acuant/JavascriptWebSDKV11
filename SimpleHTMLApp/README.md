@@ -1,7 +1,7 @@
-# Acuant JavaScript Web SDK v11.4.2
+# Acuant JavaScript Web SDK v11.4.3
 
 
-**November 2020**
+**December 2020**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -18,9 +18,9 @@ This document provides detailed information about the Acuant JavaScript Web SDK.
 
 ----------
 
-## Updates
+## Migration information
 
-**v11.4.2:** Please review [v11.4.2 Migration Details](docs/MigrationDetail11.4.2.md) for migration details.
+See [Migration Details](docs/MigrationDetail11.4.2.md) for more information.
 
 ----------
 
