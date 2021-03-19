@@ -132,7 +132,7 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 **Tap to Capture**
 
 - Tap to capture will be enabled for devices that can support the resolution constraints, but cannot support the image processing.
-- When the camera is launched, the image processing speed is automatically checked. If the speed is above the threshold set at 350ms, live document detection and autocapture features are disabled and switched to tap to capture. The user will have to manually capture the document.
+- When the camera is launched, the image processing speed is automatically checked. If the speed is above the threshold set at 400ms, live document detection and autocapture features are disabled and switched to tap to capture. The user will have to manually capture the document.
 
 
 ----------
