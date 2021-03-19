@@ -1,7 +1,7 @@
-# Acuant JavaScript Web SDK v11.4.3
+# Acuant JavaScript Web SDK v11.4.4
 
 
-**December 2020**
+**March 2021**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -70,38 +70,13 @@ The SDK includes the following modules:
 	    }
 	     
 ----------
-## Live Capture using WebRTC
-
-Live capture offers guidance to the user to position documents and initiates autocapture when detected. This feature is present only when WebRTC is available in the browser. 
-
-**Supported browsers**
-
-The JavaScript Web SDK supports the following web browsers for live capture of ID documents:
-
-- **Android**: Chrome
-- **iOS**: Safari, with iOS version <= 13.0 
-
-For other browsers that do not support WebRTC, the device's camera app (manual capture) is used.
-
-**Camera Preview**
-
-- **Android**: Android uses browser supported fullScreen mode for camera preview. User can exit out of this fullscreen mode. We recommend hiding all elements on page while camera is shown.
-- **iOS**: iOS will fill up screen height with camera preview. We recommend hiding all elements on page while camera is shown.
-
-**Tap to Capture**
-
-- Tap to capture will be enabled for devices that can support the resolution constraints, but cannot support the image processing.
-- When the camera is launched, the image processing speed is automatically checked. If the speed is above the threshold set at 300ms, live document detection and autocapture features are disabled and switched to tap to capture. The user will have to manually capture the document.
-
-
-----------
 ## Initialize and Start Web Worker
 
 1. Start the HTML5 Web Worker. (**Note**: Only one worker is allowed per application therefore, if you previously called start, it won't start another instance.)
 		
 		AcuantJavascriptWebSdk.start();
 		
-1. Initialize the Worker. (**Note**: If worker has not been started, this call will start the Worker.)
+1. Set the token credentials and ACAS endpoint required to initialize the Worker.
 
 		function initialize(
 			token : string, //Acuant credentials in base64 (basic auth format id:pass)
@@ -114,6 +89,17 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 			onFail:function(code, description){
 			}
 		}
+	Use the following ACAS endpoints based on region:
+	
+		USA: https://us.acas.acuant.net
+		EU: https://eu.acas.acuant.net
+		AUS: https://aus.acas.acuant.net
+		
+	Use the following ACAS endpoint for testing purposes:
+	
+		PREVIEW: https://preview.acas.acuant.net
+		
+1. Initialize the Worker. (**Note**: If worker has not been started, this call will start the Worker.)
 
 		AcuantJavascriptWebSdk.initialize(
             token, 
@@ -125,14 +111,41 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 		AcuantJavascriptWebSdk.end();
             
 ----------
+## Live Capture using WebRTC
+
+Live capture offers guidance to the user to position documents and initiates autocapture when detected. This feature is present only when WebRTC is available in the browser. 
+
+**Supported browsers**
+
+The JavaScript Web SDK supports the following web browsers for live capture of ID documents:
+
+- **Android**: Chrome
+- **iOS**: Safari, with iOS version >= 13.0 
+
+For other browsers that do not support WebRTC, the device's camera app (manual capture) is used.
+
+**Camera Preview**
+
+- **Android**: Android uses browser supported fullScreen mode for camera preview. User can exit out of this fullscreen mode. We recommend hiding all elements on page while camera is shown.
+- **iOS**: iOS will fill up screen height with camera preview. We recommend hiding all elements on page while camera is shown.
+
+**Tap to Capture**
+
+- Tap to capture will be enabled for devices that can support the resolution constraints, but cannot support the image processing.
+- When the camera is launched, the image processing speed is automatically checked. If the speed is above the threshold set at 350ms, live document detection and autocapture features are disabled and switched to tap to capture. The user will have to manually capture the document.
+
+
+----------
 ## AcuantCameraUI
 
-- Uses AcuantCamera to access device's native camera. AcuantCameraUI applies to the WebRTC live capture UI. 
-- Default implementation of UI. Use AcuantCamera directly for any custom UI.
+**Prerequisite**: Initialize Acuant Worker (see [Initialize and Start Web Worker](#initialize-and-start-web-worker))
 
-**Prerequisite**: Initialize Acuant Worker (see Step 2 above).
+- This is used for live capture; live detection, frame analysis, and auto capture of documents. After capture, it also processes the image.
+- AcuantCameraUI is the default implementation of the UI and uses AcuantCamera to access device's native camera via WebRTC.
 
-1. Add HTML
+### Start Live Capture
+
+1. Add HTML to show the live capture preview:
 		
 		<video id="acuant-player" controls autoplay style="display:none;" playsinline></video>
 		<canvas id="acuant-video-canvas" width="100%" height="auto"></canvas>
@@ -149,7 +162,7 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 			}
 		};
 	
-1. Start the Camera and get result.
+1. Set up callback to retrieve the image at each state of the camera. For more information on the processed image returned via **onCropped**, see [Image from AcuantCameraUI and AcuantCamera](#image-from-acuantcameraui-and-acuantcamera).
 	
 		var cameraCallback = {
 			onCaptured: function(response){
@@ -167,6 +180,7 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 				}
 			},
 			onFrameAvailable: function(response){
+				//this is optional
 				//get each frame if needed
 				//console.log(response)
 				response = {
@@ -183,21 +197,59 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 				}
 			}
 		}
-	
+
+1. Start live capture camera.
+
 		AcuantCameraUI.start(cameraCallback, (error) => {
 			//constraint error or camera not supported
 			//show manual capture
 		}, options)
 		    
-1. End Camera. **NOTE** Once AcuantCameraUI onCaptured is called, the end API is internally executed.
+1. End Camera.
 
 		AcuantCameraUI.end();
+	
+	**Note**: Once AcuantCameraUI onCaptured is called, the end API is internally executed.
+	
+If you are not using AcuantCameraUI and you wish to use your own live capture UI, you can call AcuantCamera directly to utilize document detection, frame analysis, and auto capture (see [Use Your Own Custom Live Capture UI](#use-your-own-custom-live-capture-ui)).
+	
 ----------
 
 ## AcuantCamera
-- WebRTC is used for live capture when available; otherwise, use manual capture.
+
 **Prerequisite:**
-	Initialize Acuant Worker (see Step 2 above).
+	Initialize Acuant Worker (see [Initialize and Start Web Worker](#initialize-and-start-web-worker)).
+
+### Start Manual Capture
+
+- This camera is used for manual capture. It opens the device's native camera app, which is useful when WebRTC is not available. Unlike AcuantCameraUI, it does not provide frame analysis or document detection. It does process the image after capture.
+	
+1. Start manual capture. For more information on the processed image returned via **onCropped**, see [Image from AcuantCameraUI and AcuantCamera](#image-from-acuantcameraui-and-acuantcamera). 
+		
+        AcuantCamera.startManualCapture({
+            onCaptured: function(response){
+                //this will be called after user finishes capture
+                //then proceeds to crop
+                //onCropped will be called after finished
+            },
+            onCropped: function(response){
+                if(response){
+                    //cropped response;
+                    
+                }
+                else{
+                    //Error occurred during cropping; retry capture
+                }
+            }
+        });
+        
+	**Important**: AcuantCamera manual capture uses `<input type="file"/>` html tags to access the device's camera app. This REQUIRES a user initiated event to start the camera.
+
+	**Note**: Acuant recommends not hiding any UI elements when starting manual capture. Be aware users will be able to cancel out of the device's camera app screen.
+	
+### Use Your Own Custom Live Capture UI
+
+When not using the default AcuantCameraUI for the live capture preview. You can implement your own live capture preview and use AcuantCamera to do the frame analysis, document detection, and auto capture.
 		
 1. Add HTML:
 		
@@ -224,7 +276,6 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 			  }
 			})();
 		}, 0);	
-		 	
 
 1. Start the frame analysis. Pass in a callback that will be called while camera is active.
 
@@ -272,31 +323,8 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 	      		//error
 	      	}
     	});    
-    	
-1. Start manual capture (when WebRTC live capture is unavailable) 
 
-	**IMPORTANT**: AcuantCamera manual capture uses `<input type="file"/>` html tags to access the device's camera app. This REQUIRES a user initiated event to start the camera.
-
-	**NOTE**: Acuant recommends not hiding any UI elements when starting manual capture. Be aware users will be able to cancel out of the device's camera app screen.
-		
-        AcuantCamera.startManualCapture({
-            onCaptured: function(response){
-                //this will be called after user finishes capture
-                //then proceeds to crop
-                //onCropped will be called after finished
-            },
-            onCropped: function(response){
-                if(response){
-                    //cropped response;
-                }
-                else{
-                    //Error occurred during cropping; retry capture
-                }
-            }
-        });
-
-
-1. AcuantCamera Info:
+**AcuantCamera Info**
 
 		const AcuantCamera = (function(){
 		    let isCameraSupported = boolean;
@@ -313,12 +341,12 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 		        PASSPORT: 2
 		    };
 		    
-		    function start(cb, errorCb)//start the frame analysis
-		    
+		    // open manual capture
 		    function startManualCapture(cb, errorCb)
 		    
+		    // used for live capture UI (AcuantCameraUI or custom)
+		    function start(cb, errorCb)//start the frame analysis
 		    function triggerCapture(cb)//capture
-		    
 		    function end()//end camera
 		    
 		})();
@@ -327,37 +355,75 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 ## Process the Image
 
 **Prerequisite:**
-	Initialize Acuant Worker (see Step 2 above).
+	Initialize Acuant Worker (see [Initialize and Start Web Worker](#initialize-and-start-web-worker)).
 	
-1. Process the image:
+### Image from AcuantCameraUI and AcuantCamera ###
+	
+When using AcuantCameraUI and AcuantCamera, after the document image is captured, it is automatically processed with crop, sharpness, and glare. 
+
+**Cropping, Sharpness, and Glare**
+
+The processed image and data are returned via the camera **onCropped** callback. The image can be used to verify the crop, sharpness, and glare of the image, and then upload the document. 
+
+Here is the response from the callback:
+
+            response = {
+					image: { 
+						data: String,
+						width: Number,
+						height: Number
+					}, 
+					glare: Number, 
+					sharpness: Number,
+					cardType: Number,//define card type, None = 0, ID = 1, Passport = 2
+					dpi: Number
+            	}
+	      	}
+
+If the sharpness value is greater than 50, then the image is considered sharp (not blurry). If the glare value is 100, then the image does not contain glare. If the glare value is 0, then image contains glare. When image is obtained and has passed metrics, it is ready for upload.
+
+**Note**: If using Acuant web service to authenticate documents, the image must be sharp and not contain glare to get best results in authentication and data extraction. When the image has glare, low sharpness, or both, retake the image. Acuant recommends against modifying and/or compressing the resulting image before uploading to the Acuant web service. Modifying and/or compressing the image may negatively affect authentication and data extraction results.
+
+### Process the Image Manually ###
+	
+This information is for processing images manually if not captured through AcuantCameraUI and AcuantCamera.
+	
+1. Info on the crop function:
 		
 		function crop(
 			data : object, //image data from context object shown below
 			width : number, //width of image
 			height: number,  //height of image
-			callback: object, //callback shown below);			
+			callback: object, //callback shown below);
+
+2. Create a canvas for the image to be processed:
+
 		let canvas = document.createElement('canvas'),
 			context = canvas.getContext('2d'),
 			context.drawImage(YOUR_IMAGE, 0, 0, MAX_WIDTH = 2560, MAX_HEIGHT = 1920),
-        	imgData = context.getImageData(),
-			
-			callback = {
-				onSuccess:function(result){
-					result = {
-						dpi: Number,
-						sharpness: Number,
-						glare: Number,
-						cardType: Number,//card type, 0 = None, 1 = ID, 2 = Passport
-						image:{
-							data: String,
-							width: Number,
-							height: Number
-						}
+			imgData = context.getImageData(),
+      
+3. Add the callback:
+
+		var callback = {
+			onSuccess:function(result){
+				result = {
+					dpi: Number,
+					sharpness: Number,
+					glare: Number,
+					cardType: Number,//card type, 0 = None, 1 = ID, 2 = Passport
+					image:{
+						data: String,
+						width: Number,
+						height: Number
 					}
-				},
-				onFail:function(){
 				}
+			},
+			onFail:function(){
 			}
+		}
+
+4. Call the crop function:
 
 		AcuantJavascriptWebSdk.crop(
 			imgData,
@@ -366,11 +432,10 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
         	callback);
 
 
-
 -------------------------------------------------------------
 ## Face Capture and Acuant Passive Liveness
 **Prerequisite:**
-	Credentials with Acuant Passive Liveness enabled
+	To use the face capture and FaceID API, credentials with FaceID must be enabled. 
 
 Acuant recommends using the **LiveAssessment** property rather than the score) to evaluate response. **AcuantPassiveLiveness.startSelfieCapture** will return a rescaled image.
 
@@ -395,9 +460,11 @@ The following may significantly increase errors or false results:
 - A spotlight on the face and nearest surroundings
 - An environment with poor lighting or colored light
 
-**Note**  Face live capture and guidance is not supported, only manual capture is available. Also, the use of fish-eye lenses is not supported by this API.
+**Note**: Face live capture and guidance is not supported, only manual capture is available. Also, the use of fish-eye lenses is not supported by this API.
 
 ### Start face capture and send Passive Liveness request
+
+**Important:** Do not use this function for face capture if you are not using the Acuant FaceID API.
 
 1. Start face capture with device's camera app.
 
@@ -439,8 +506,49 @@ The following may significantly increase errors or false results:
 			}
 		})
 		
+### Known Issues:
+
+1. When using Passive Liveness camera on Google Chrome for Android, the camera defaults to the back facing instead of the front facing camera. Users can tap to switch to the front facing camera.
+
+	This is a Chrome issue and unfortunately, we cannot provide a workaround at this time.
+
+	See: 
+	[https://bugs.chromium.org/p/chromium/issues/detail?id=1182828]()
+	[https://stackoverflow.com/questions/56721653/why-doesnt-capture-user-change-my-phones-camera-to-front-facing]()
+	
+1. When embedding the AcuantCamera live capture preview onto an iframe, it may squish the preview causing capture and document detection issues. The workaround is to add iframe properties in the CSS.
+
+	Add the following iframe properties in the CSS on the page that will use the iframe:
+
+		iframe {
+			border: 0 !important;
+			height: 100%;
+			width: 100% !important;
+		}
+		.iframe-content{
+			height: auto;
+		}
+		
+		@media only screen and (max-width: 600px) {
+			iframe {
+				height: 100%;
+			}
+			.iframe-content{
+				height: 96%;
+			}
+		}
+		
+	Add the HTML canvas on the page embedded in the iframe:
+
+		<div style="display:none" id="camera">
+			<video id="acuant-player" controls="" autoplay="" style="display:none;" playsinline=""></video>
+			<div style="text-align: center !important;width: 100% !important;">
+				<canvas id="acuant-video-canvas" width="100%" height="auto"></canvas>
+			</div>
+		</div>
+		
 ----------
-**Copyright 2020 Acuant Inc. All rights reserved.**
+**Copyright 2021 Acuant Inc. All rights reserved.**
 
 This document contains proprietary and confidential information and creative works owned by Acuant and its respective licensors, if any. Any use, copying, publication, distribution, display, modification, or transmission of such technology, in whole or in part, in any form or by any means, without the prior express written permission of Acuant is strictly prohibited. Except where expressly provided by Acuant in writing, possession of this information shall not be construed to confer any license or rights under any Acuant intellectual property rights, whether by estoppel, implication, or otherwise.
 

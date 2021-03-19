@@ -87,6 +87,7 @@
 </header>
 
 <body>
+  <p id="desc"></p>
   <div id="acuant-loader" class="row text-center" style="display:none;">
     <div class="col-md-12">
       <div class="loader" style="margin: 10% 0 0 45%"></div>
@@ -175,6 +176,7 @@
 
   const cameraBtn = document.getElementById('camera-btn');
   const camera = document.getElementById('camera');
+  const desc = document.getElementById('desc');
   const result = document.getElementById('result-id');
 
   const resultFace = document.getElementById('result-face');
@@ -216,9 +218,12 @@
     camera.style.display = "none";
     result.style.display = "block";
     cameraBtn.style.display = "block";
+    desc.style.display = "block"
   }
 
   function openCamera() {
+
+    desc.style.display = "none"
     result.style.display = "none";
     resultFace.style.display = "none";
 
@@ -254,7 +259,7 @@
   }
 
   function startCamera() {
-    if (AcuantCamera.isCameraSupported && !liveCaptureFailed) {
+    if (AcuantCamera.isCameraSupported && !AcuantCamera.isIOSWebview && !liveCaptureFailed) {
       cameraBtn.style.display = "none";
       camera.style.display = "block";
 
