@@ -1,7 +1,7 @@
-# Acuant JavaScript Web SDK v11.4.4
+# Acuant JavaScript Web SDK v11.4.5
 
 
-**March 2021**
+**June 2021**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -76,10 +76,17 @@ The SDK includes the following modules:
 		
 		AcuantJavascriptWebSdk.start();
 		
-1. Set the token credentials and ACAS endpoint required to initialize the Worker.
+1. Set the credentials (either bearer token or basic auth format in base64) and ACAS endpoint required to initialize the Worker.
 
 		function initialize(
 			token : string, //Acuant credentials in base64 (basic auth format id:pass)
+			endpoint : string, //endpoint for Acuant's ACAS server
+			callback: object); //callback shown below
+			
+		//or
+		
+		function initializeWithToken(
+			token : string, //bearer token
 			endpoint : string, //endpoint for Acuant's ACAS server
 			callback: object); //callback shown below
 	
@@ -505,8 +512,48 @@ The following may significantly increase errors or false results:
 					"NotFound"
 			}
 		})
-		
-### Known Issues:
+	
+
+----------
+
+## Use of CDNs (Content Delivery Networks)
+
+Web Workers/WASM and CDNs can be used together with workarounds. The following changes would need to be added to your code to host the Web Workers/WASM through a CDN:
+
+1. Add the following code to point to the Worker:
+
+        <script id="AcuantWebWorkerSource" type="worker">
+          importScripts("https://your.CDN.URL/AcuantImageProcessingWorker.min.js");
+        </script>
+        
+1. Add the following function in your code:
+
+        function getURL() {
+          const txt = document.getElementById( 'AcuantWebWorkerSource' ).textContent;
+          return URL.createObjectURL( new Blob( [ txt ] ) );
+        }
+        
+1. Before calling initialize, replace the path in acuantConfig with result of the getURL():
+
+        acuantConfig.path = getURL();
+        
+1. The initialize function contains a fourth variable that is set to 0 by default. Change this value to 1.
+
+        AcuantJavascriptWebSdk.initialize(base64Token, acas_endpoint, callback, 1);
+        //or
+        AcuantJavascriptWebSdk.initializeWithToken(oauthToken, acas_endpoint, callback, 1);
+        
+1. Web Workers running from CDNs have issues with relative URLs. In order for the Web Worker to be able to find the associated .wasm file you will need to provide it with the absolute URL of the wasm file.
+
+- Acuant provides a script within the repo called convert_for_cdn.sh. Run this script by giving it the path to the AcuantImageProcessingWorker.min.js and the full URL for the .wasm file and it will modify AcuantImageProcessingWorker.min.js for you. Please note the script conducts limited sanity checks and if given the wrong parameters might behave unexpectedly.
+
+        bash convert_for_cdn.sh webSdk/dist/AcuantImageProcessingWorker.min.js https://your.CDN.URL/AcuantImageProcessingWorker.wasm
+
+- If the script doesn't provide the desired outcome, or if you prefer to manually edit the file, open the AcuantImageProcessingWorker.min.js file with your preferred text editor. Find the section of code that reads: wasmBinaryFile="AcuantImageProcessingWorker.wasm"; and replace the value of the string with the absolute URL for the .wasm file.
+
+----------
+
+## Known Issues
 
 1. When using Passive Liveness camera on Google Chrome for Android, the camera defaults to the back facing instead of the front facing camera. Users can tap to switch to the front facing camera.
 

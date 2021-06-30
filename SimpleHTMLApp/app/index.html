@@ -1,5 +1,5 @@
 <html>
-<header>
+<head>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
@@ -84,7 +84,7 @@
       cursor: pointer;
     }
   </style>
-</header>
+</head>
 
 <body>
   <p id="desc"></p>
@@ -199,6 +199,7 @@
 
   function init() {
     let base64Token = btoa(Credential.id_username + ':' + Credential.id_password);
+    //alternatively AcuantJavascriptWebSdk.initializeWithToken replacing base64Token with the oauth token leaving the rest the same
     AcuantJavascriptWebSdk.initialize(base64Token, Credential.acas_endpoint, {
       onSuccess: function () {
         showCameraButton();
