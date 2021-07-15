@@ -1,7 +1,7 @@
-# Acuant JavaScript Web SDK v11.4.5
+# Acuant JavaScript Web SDK v11.4.6
 
 
-**June 2021**
+**July 2021**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -61,13 +61,19 @@ The SDK includes the following modules:
 		const acuantConfig = {
 			path: "/custom/path/to/sdk/"
 		}
-    	
+		
+1. Optionally, you can modify the JPEG quality setting in acuantConfig, however, Acuant discourages users from decreasing the quality unless absolutely necessary. Note that compression can result in certain tests being skipped, and Acuant strongly advises users against compressing below 600-1200 kb.
+
+		const acuantConfig = {
+			//other fields
+			jpegQuality: (float in the range of 0 to 1 with 0 being very low quality and 1 being the highest quality)
+		}
     	
 1. Define a callback *before* the script tag in step 2. This is an optional global JavaScript function that is executed after Wasm is loaded.
 		
 		var onAcuantSdkLoaded = function(){
 	       //sdk has been loaded;
-	    }
+		}
 	     
 ----------
 ## Initialize and Start Web Worker
@@ -133,8 +139,8 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 
 **Camera Preview**
 
-- **Android**: Android uses browser supported fullScreen mode for camera preview. User can exit out of this fullscreen mode. We recommend hiding all elements on page while camera is shown.
-- **iOS**: iOS will fill up screen height with camera preview. We recommend hiding all elements on page while camera is shown.
+- **Android**: Android uses browser supported fullScreen mode for camera preview. User can exit out of this fullscreen mode. Acuant recommends hiding all visual elements on page while camera is shown.
+- **iOS**: iOS will fill the width of the screen with the camera preview, typically with some unfilled space at the top and bottom (iOS cameras tend to display in 4:3, whereas screens tend to display in widescreen). Therefore, some elements of the page might be visible. Acuant recommends hiding all visual elements and optionally adding some background elements as otherwise the background will be white.
 
 **Tap to Capture**
 
