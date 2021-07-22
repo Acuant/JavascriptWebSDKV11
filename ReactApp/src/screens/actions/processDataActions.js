@@ -2,7 +2,29 @@ import ApiService from "../../services/api/api";
 import {history} from './../../store';
 import MedicScanService from "../../services/api/medicScan";
 
-export function processID(instanceID) {
+function getOverallAuth(type) {
+
+    switch (type) {
+        case 0 :
+            return 'Unknown';
+        case 1:
+            return 'Passed';
+            break;
+        case 2:
+            return 'Failed';
+            break;
+        case 3:
+            return 'Skipped';
+        case 4:
+            return 'Caution';
+        case 5:
+            return 'Attention';
+        default:
+            return 'Unknown';
+    }
+}
+
+export function processID(instanceID, detailed = true) {
     return (dispatch) => {
         ApiService
             .getResults(instanceID)
@@ -24,28 +46,18 @@ export function processID(instanceID) {
                     let type = res.Result;
                     let idAuthentication = null;
 
-                    switch (type) {
-                        case 0 :
-                            idAuthentication = 'Unknown';
-                            break;
-                        case 1:
-                            idAuthentication = 'Passed';
-                            break;
-                        case 2:
-                            idAuthentication = 'Failed';
-                            break;
-                        case 3:
-                            idAuthentication = 'Skipped';
-                            break;
-                        case 4:
-                            idAuthentication = 'Caution';
-                            break;
-                        case 5:
-                            idAuthentication = 'Attention';
-                            break;
-                        default:
-                            idAuthentication = 'Unknown';
-                            break;
+                    if(!detailed) {
+                        idAuthentication = getOverallAuth(type);
+                    } else {
+                        idAuthentication = "Overall : " + getOverallAuth(type) + "\n";
+                        var i;
+                        for (i = 0; i < res.Alerts.length; ++i) {
+                            let alert = res.Alerts[i];
+                            if (alert.Result != 1) {
+
+                                idAuthentication += alert.Description + " : " + alert.Disposition + "\n";
+                            }
+                        }
                     }
 
                     dataObject['Authentication'] = idAuthentication;

@@ -5,7 +5,7 @@ body,
 
     @include breakpoint() {
 
-        min-height: 100vh;
+        min-height: 90vh;
         max-width: 100vw;
 
         overflow-x: hidden;
@@ -42,7 +42,7 @@ body {
         @include breakpoint($desktop_small) {
 
             width: 420px;
-            height: 100vh;
+            min-height: 90vh;
 
             margin: 0 auto;
 

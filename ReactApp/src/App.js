@@ -6,6 +6,7 @@ import {PersistGate} from 'redux-persist/es/integration/react';
 import {isMobile} from "react-device-detect";
 import {Provider} from 'react-redux';
 import CapturePhoto from './screens/CapturePhoto';
+import EulaPage from './screens/Eula';
 import CaptureSelfie from './screens/CaptureSelfie';
 import Results from './screens/Results/index';
 import Error from './screens/Error/index';
@@ -87,7 +88,7 @@ class App extends Component {
                         return process.env.REACT_APP_AUTH_TOKEN;
                     }
                 })(), 
-                process.env.REACT_APP_ID_ENDPOINT,
+                process.env.REACT_APP_ACAS_ENDPOINT,
                 {
                     onSuccess:function(){
                         this.isInitialized = true;
@@ -108,6 +109,10 @@ class App extends Component {
     }
 
     render() {
+        if (!localStorage.getItem('acuantEula') && this.props.routerHistory.location.pathname !== "/eula") {
+            this.props.routerHistory.push("/eula")
+        } 
+        
         return (
             <div className={'mainContent'}>
                 {
@@ -116,6 +121,7 @@ class App extends Component {
                         <ConnectedRouter history={this.props.routerHistory}>
                             <Switch>
                                 <Redirect exact from="/" to="/capture/photo"/>
+                                <Route path='/eula' exact component={EulaPage}/>
                                 <Route path="/capture/photo" exact component={CapturePhoto}/>
                                 <Route path="/capture/camera" exact component={AcuantReactCamera}/>
                                 <Route path="/photo/confirm" exact component={ProcessedImageResult} />

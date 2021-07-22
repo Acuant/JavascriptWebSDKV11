@@ -117,7 +117,7 @@ table {
   html,
   body,
   #root {
-    min-height: 100vh;
+    min-height: 90vh;
     max-width: 100vw;
     overflow-x: hidden; } }
 
@@ -136,7 +136,7 @@ table {
 @media screen and (min-width: 80em) {
   body #root {
     width: 420px;
-    height: 100vh;
+    min-height: 90vh;
     margin: 0 auto; } }
 
 @media screen and (min-width: 80em) {
@@ -426,5 +426,6 @@ table {
 
 @media screen {
   .results .results_data .row .data {
+    white-space: pre-line;
     font-size: 14px;
     line-height: 24px; } }
