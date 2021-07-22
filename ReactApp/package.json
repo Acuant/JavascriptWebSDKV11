@@ -5,7 +5,7 @@
   "dependencies": {
     "@babel/polyfill": "^7.2.5",
     "ajv": "^6.12.6",
-    "axios": "^0.18.1",
+    "axios": "^0.21.1",
     "axios-retry": "^3.1.2",
     "connected-react-router": "^4.3.0",
     "envfile": "^2.3.0",
