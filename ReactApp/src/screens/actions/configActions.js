@@ -10,7 +10,7 @@ export function setInstanceID(payload) {
                 })
             })
             .catch(err => {
-                console.log(err)
+                console.log("ApiService.setInstanceID:", err)
                 throw new Error(err);
             })
 
