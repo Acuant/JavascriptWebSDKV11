@@ -1,7 +1,7 @@
-# Acuant JavaScript Web SDK v11.4.6
+# Acuant JavaScript Web SDK v11.4.7
 
 
-**July 2021**
+**October 2021**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -15,6 +15,12 @@ This software is subject to Acuant's end user license agreement (EULA), which ca
 ## Introduction
  
 This document provides detailed information about the Acuant JavaScript Web SDK. The JavaScript Web SDK allows developers to integrate image capture and processing functionality in their mobile web applications.
+
+----------
+
+## iOS 15 Hotfix
+ 
+This release is a temporary patch. A more robust solution is under investigation. This patch enables iOS 15 devices to go to manual capture instead of freezing.
 
 ----------
 

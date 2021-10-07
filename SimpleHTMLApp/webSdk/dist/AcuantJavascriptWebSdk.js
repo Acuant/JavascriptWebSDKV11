@@ -2,7 +2,7 @@ var AcuantConfig = (function(){
     'use strict';
 
     return {
-        acuantVersion: "11.4.6",
+        acuantVersion: "11.4.7",
         cvmlVersion: "4.3.4"
     };
 })();
@@ -596,8 +596,10 @@ var AcuantCamera = (function () {
     function start(callback, errorCallback) {
         player = document.getElementById('acuant-player');
         videoCanvas = document.getElementById('acuant-video-canvas');
-
-        if (isStarted) {
+        if (isiOS15()) {
+            errorCallback("You are running a version with a hotfix for ios15 which will force manual capture on all ios15 devices and all ipads running  ios13+. If several weeks have passed since October 7th 2021, please check the releases, as a proper fix will be released as soon as it is working.");
+        }
+        else if (isStarted) {
             errorCallback("already started.");
         }
         else if (!player || !videoCanvas) {
@@ -797,6 +799,11 @@ var AcuantCamera = (function () {
     function isiOS144Plus() {
         let ver = iOSversion();
         return ver && ver != -1 && ver.length >= 2 && ver[0] >= 14 && ver[1] >= 4
+    }
+
+    function isiOS15() {
+        let ver = iOSversion();
+        return (ver && ver != -1 && ver.length >= 1 && ver[0] == 15) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     }
 
     function onOrientationChange() {
