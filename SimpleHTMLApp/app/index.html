@@ -3,13 +3,15 @@
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
   <style>
     .loader {
-      border: 16px solid #f3f3f3;
+      border: 5vw solid #f3f3f3;
       border-radius: 50%;
-      border-top: 16px solid #3498db;
-      width: 120px;
-      height: 120px;
+      border-top: 5vw solid #3498db;
+      width: 20vw;
+      height: 20vw;
       -webkit-animation: spin 2s linear infinite;
       /* Safari */
       animation: spin 2s linear infinite;
@@ -83,6 +85,17 @@
       text-decoration: none;
       cursor: pointer;
     }
+
+    .fit-screen {
+      max-width: 100%;
+      max-height: 100%;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      top: 0;
+      -o-object-fit: contain;
+      object-fit: contain;
+    }
   </style>
 </head>
 
@@ -90,7 +103,7 @@
   <p id="desc"></p>
   <div id="acuant-loader" class="row text-center" style="display:none;">
     <div class="col-md-12">
-      <div class="loader" style="margin: 10% 0 0 45%"></div>
+      <div class="loader" style="margin: 20% auto 0 auto"></div>
     </div>
   </div>
   <div id="camera-btn" class="row text-center" style="display:none; margin:10% 0 10% 0">
@@ -99,12 +112,9 @@
       <button class="btn btn-success mr-2" onClick="openCamera()">Open Camera</button>
     </div>
   </div>
-  <div id="camera" style="display:none;">
-    <video id="acuant-player" controls autoplay style="display:none;" playsinline></video>
-    <div class="row">
-      <div class="col-md-12 text-center">
-        <canvas id="acuant-video-canvas" width="100%" height="auto"></canvas>
-      </div>
+  <div class="row">
+    <div class="col-md-12 text-center">
+      <div id="acuant-camera"></div>
     </div>
   </div>
   <div id="result-face" style="display:none;">
@@ -128,7 +138,7 @@
   <div id="result-id" style="display:none">
     <div class="row text-center">
       <div class="col-md-12">
-        <canvas id="result-canvas" width="auto" height="auto"></canvas>
+        <canvas id="result-id-img" class="fit-screen" style="display:block"></canvas>
       </div>
     </div>
     <div class="row text-center" style="margin-top:1%">
@@ -150,7 +160,7 @@
   <div id="acuant-modal" class="modal-content" style="display: none; margin-top:30%">
     <span class="close">&times;</span>
     <div class="row" style="margin:3%">
-      <h3>Live Camera failed to open. Start manual capture</h3>
+      <h3 id="acuant-modal-text"></h3>
     </div>
     <div class="row text-right" style="margin:3%">
       <button class="btn btn-success mr-2" onClick="startManualCapture()">Start Manual Capture</button>
@@ -169,20 +179,17 @@
     acas_endpoint: "https://acas.acuant.net",
     liveness_endpoint:"https://us.passlive.acuant.net"
   }
+
   const player = document.getElementById('acuant-player');
 
-  const videoCanvas = document.getElementById('acuant-video-canvas');
-  const videoContext = videoCanvas.getContext('2d');
-
   const cameraBtn = document.getElementById('camera-btn');
-  const camera = document.getElementById('camera');
+  const camera = document.getElementById('acuant-camera');
   const desc = document.getElementById('desc');
   const result = document.getElementById('result-id');
 
   const resultFace = document.getElementById('result-face');
 
-  const canvas = document.getElementById('result-canvas');
-  const context = canvas.getContext('2d');
+  const resultId = document.getElementById('result-id-img');
 
   const sharpnessInput = document.getElementById('sharpness');
   const glareInput = document.getElementById('glare');
@@ -194,6 +201,9 @@
   var currentResult = {};
 
   function onAcuantSdkLoaded() {
+    //Unexpected errors shouldn't happen with correct usage of the sdk, and should be fine to leave out,
+    //but to be safe you can handle it with a callback function like this:
+    AcuantJavascriptWebSdk.setUnexpectedErrorCallback(unexpectedError);
     init();
   }
 
@@ -202,13 +212,26 @@
     //alternatively AcuantJavascriptWebSdk.initializeWithToken replacing base64Token with the oauth token leaving the rest the same
     AcuantJavascriptWebSdk.initialize(base64Token, Credential.acas_endpoint, {
       onSuccess: function () {
-        showCameraButton();
-        console.log("intialize succeded");
+        if (!isOldiOS()) {
+          AcuantJavascriptWebSdk.startWorkers(initDone); //no list of workers to start means it will start all the workers. 
+        } else {
+          AcuantJavascriptWebSdk.startWorkers(initDone, [AcuantJavascriptWebSdk.ACUANT_IMAGE_WORKER]); //old ios devices can struggle running metrics. See readme for more info.
+        }
       },
       onFail: function (code, description) {
-        console.log("intialize failed " + code + ": " + description);
+        console.log("initialize failed " + code + ": " + description);
       }
     });
+  }
+
+  //Good practice to end workers when you are done with them (does not have to be in onbeforeunload, end them when you are done with them in your workflow and won't use them again).
+  window.onbeforeunload = function(event) {
+    end();
+  };
+
+  function initDone() {
+    showCameraButton();
+    console.log("initialize succeded");
   }
 
   function showCameraButton() {
@@ -219,7 +242,7 @@
     camera.style.display = "none";
     result.style.display = "block";
     cameraBtn.style.display = "block";
-    desc.style.display = "block"
+    desc.style.display = "block";
   }
 
   function openCamera() {
@@ -242,17 +265,8 @@
   }
 
   var cameraCallback = {
-    onCaptured: function (response) {
-      loader.style.display = "block";
-      camera.style.display = "none";
-    },
-    onCropped: function (response) {
-      if (response) {
-        drawImageOnResult(response);
-      }
-      closeCamera();
-      loader.style.display = "none";
-    },
+    onCaptured: onCaptured,
+    onCropped: onCropped,
     onFrameAvailable: function (response) {
       //get each frame if needed
       //console.log(response)
@@ -260,65 +274,79 @@
   }
 
   function startCamera() {
+    currentResult = {};
     if (AcuantCamera.isCameraSupported && !AcuantCamera.isIOSWebview && !liveCaptureFailed) {
       cameraBtn.style.display = "none";
       camera.style.display = "block";
 
-      AcuantCameraUI.start(cameraCallback, (error) => {
-        modal.style.display = "block";
-        camera.style.display = "none";
-        liveCaptureFailed = true;
-      }, options);
+      AcuantCameraUI.start(cameraCallback, onError, options);
     }
     else {
       startManualCapture()
     }
   }
 
-  function startManualCapture() {
-    AcuantCamera.startManualCapture({
-      onCropped: function (response) {
-        loader.style.display = "none";
+  function onError(error, code) {
+    camera.style.display = "none";
+    console.error(error, code);
+    liveCaptureFailed = true;
 
-        if (response) {
-          closeCamera();
-          drawImageOnResult(response);
-        }
-        else {
-          closeCamera();
-        }
-      },
-      onCaptured: function (response) {
-        cameraBtn.style.display = "none";
-        modal.style.display = "none";
-        loader.style.display = "block";
+    if (code === AcuantJavascriptWebSdk.REPEAT_FAIL_CODE) { //live capture was started after previous failure leading to manual capture, show any elements you may have hidden as the user can cancel the prompt and could otherwise end up on a blank page.
+      cameraBtn.style.display = "block";
+    } else {
+      modal.style.display = "block";
+      switch(code) {
+        case AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE: //ios 15 bug
+          modalText.innerHTML = "Camera failed due to ios 15 bug. Start manual capture.";
+          break;
+        case AcuantJavascriptWebSdk.START_FAIL_CODE: //camera not supported or permission not granted
+          modalText.innerHTML = "Live Camera failed to open. Start manual capture.";
+          break;
+        default: //unknown error (shouldn't happen)
+          modalText.innerHTML = "Unknown camera failure. Start manual capture.";
+          break;
       }
-    });
+    }
+  }
+
+  function onCaptured(response) {
+    cameraBtn.style.display = "none";
+    modal.style.display = "none";
+    loader.style.display = "block";
+  }
+
+  function onCropped(response) {
+    if (response) {
+      drawImageOnResult(response);
+    }
+    closeCamera();
+    loader.style.display = "none";
+  }
+
+  function startManualCapture() {
+    AcuantCamera.startManualCapture(cameraCallback);
   }
 
   function end() {
-    AcuantJavascriptWebSdk.end();
+    AcuantJavascriptWebSdk.endWorkers();
   }
 
   function drawImageOnResult(result) {
     if (result && result.image) {
-      var image = new Image();
-      image.onload = function () {
-        let width = result.image.width;
-        let height = result.image.height;
-
-        sharpnessInput.value = result.sharpness;
-        glareInput.value = result.glare;
-        dpiInput.value = result.dpi;
-
-        canvas.width = width;
-        canvas.height = height;
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        window.scrollTo(0, window.screen.height);
-      };
-      image.src = result.image.data;
       currentResult = result.image.data;
+
+      resultId.width = result.image.width;
+      resultId.height = result.image.height;
+
+      const imgContext = resultId.getContext('2d');
+      const imgBuffer = imgContext.createImageData(result.image.width, result.image.height);
+      imgBuffer.data.set(result.image.bytes, 0);
+
+      imgContext.putImageData(imgBuffer, 0, 0);
+
+      sharpnessInput.value = result.sharpness;
+      glareInput.value = result.glare;
+      dpiInput.value = result.dpi;
     }
   }
 
@@ -330,6 +358,30 @@
     link.setAttribute("href", currentResult);
     link.setAttribute("download", "testJavascript.jpg");
     link.click();
+  }
+
+  //this is an example of how to detect an older ios device.
+  //depending on your enviroment you might be able to get more specific.
+  function isOldiOS() {
+    let keyPhrase = "iPhone OS";
+    let ua = navigator.userAgent;
+    let index = ua.indexOf(keyPhrase);
+    if (index > 0) {
+      let version = ua.substring(index + keyPhrase.length + 1, index + keyPhrase.length + 3);
+      let versionNum = parseInt(version);
+      if (versionNum && versionNum < 13) {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+
+  function unexpectedError(errorMsg) {
+    //handle an unexpected or unknown error
+    console.error("Got an unexpected error callback:", errorMsg);
   }
 
   //**************** Passive Liveness==========================
@@ -373,7 +425,8 @@
 
   //**************** Custom Modal===========================
   // Get the modal
-  var modal = document.getElementById("acuant-modal");
+  const modal = document.getElementById("acuant-modal");
+  const modalText = document.getElementById('acuant-modal-text');
 
   // Get the <span> element that closes the modal
   var span = document.getElementsByClassName("close")[0];
@@ -399,6 +452,9 @@
     jpegQuality: 1.0 //strongly advised not to modify (can be left out will default to 1.0)
   }
 </script>
-<script async src="/webSdk/dist/AcuantJavascriptWebSdk.min.js" charset="utf-8"></script>
+<script src="/app/Credential.js"></script>
+<script src="/webSdk/dist/AcuantJavascriptWebSdk.min.js" charset="utf-8"></script>
+<script async src="/webSdk/dist/AcuantCamera.min.js" charset="utf-8"></script>
+<script async src="/webSdk/dist/AcuantPassiveLiveness.min.js" charset="utf-8"></script>
 
 </html>

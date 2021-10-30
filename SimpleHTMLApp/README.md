@@ -1,14 +1,16 @@
-# Acuant JavaScript Web SDK v11.4.7
-
+# Acuant JavaScript Web SDK v11.5.0
 
 **October 2021**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
+
 ----------
 
 ## License
+
 This software is subject to Acuant's end user license agreement (EULA), which can be found [here](EULA.pdf).
+
 
 ----------
 
@@ -16,17 +18,13 @@ This software is subject to Acuant's end user license agreement (EULA), which ca
  
 This document provides detailed information about the Acuant JavaScript Web SDK. The JavaScript Web SDK allows developers to integrate image capture and processing functionality in their mobile web applications.
 
-----------
-
-## iOS 15 Hotfix
- 
-This release is a temporary patch. A more robust solution is under investigation. This patch enables iOS 15 devices to go to manual capture instead of freezing.
 
 ----------
 
 ## Migration information
 
-See [Migration Details](docs/MigrationDetail11.4.2.md) for more information.
+See [Migration Details](docs/MigrationDetails.md) for more information.
+
 
 ----------
 
@@ -36,78 +34,113 @@ The SDK includes the following modules:
 
 **Acuant JavaScript SDK (AcuantJavaScriptSdk.min.js):**
 
-- Live Document Capture functionality 
-- Uses Acuant library to detect documents, crop, calculate sharpness and glare.
-- Additional Camera UI provided by Acuant.
-- Face Capture with Passive Liveness using credentials
+- Main script used to call all the other parts of the SDK
 
-**Acuant Image Service (AcuantImageProcessingService.js.mem):**
+**Acuant Camera (AcuantCamera.min.js/AcuantCamera.js)**
 
-- Interface file to interact with **AcuantImageProcessingWorker**
+- Live Document Capture functionality
+- Uses AssureID Document Library to detect documents, crop, calculate sharpness and glare
+- Additional Camera UI provided by Acuant
 
-**Acuant Image Processsing Worker (AcuantImageProcessingWorker.js, AcuantImageProcessingWorker.wasm):**
+**Acuant Passive Liveness (AcuantPassiveLiveness.min.js)**
 
-- HTML5 Web Worker to process the images
+- Enables face capture, face match, and liveness detection
+
+**Acuant Initializer Worker (AcuantInitializerWorker.min.js, AcuantInitializerService.js, AcuantInitializerService.wasm):**
+
+- WASM-based Web Worker used to initialize the SDK with a set of credentials or a Bearer token
+- Used by the Implementer via **Acuant JavaScript SDK**
+
+**Acuant Image Worker (AcuantImageWorker.min.js, AcuantImageService.js, AcuantImageService.wasm):**
+
+- WASM-based Web Worker used to run Cropping and Document Detection
+- Used by **Acuant Camera** or by the Implementer via **Acuant JavaScript SDK**
+
+**Acuant Metrics Worker (AcuantMetricsWorker.js, AcuantMetricsService.js, AcuantMetricsService.js.mem):**
+
+- Web Worker used to run image quality metrics like sharpness and glare
+- Used by **Acuant Image Worker** after cropping or by the Implementer via **Acuant JavaScript SDK**
+
 
 ----------
+
 ## Setup
 
-1. Add the following dependencies on these files (**Note**:  These files should be accessible by HTTP in the public resource directory of the hosted application.):
+1. Add the following files, excluding ones that will not be used (**Note**:  These files must be accessible in the public resource directory of the hosted application):
 	- **AcuantJavaScriptSdk.min.js**
-	- **AcuantImageProcessingService.js.mem**
-	- **AcuantImageProcessingWorker.min.js**
-	- **AcuantImageProcessingWorker.wasm**
-
-1. Load AcuantJavascriptSdk script:
+	- **AcuantCamera.min.js**
+	- **AcuantPassiveLiveness.min.js**
+	- **AcuantInitializerWorker.min.js**
+	- **AcuantInitializerServicejs**
+	- **AcuantInitializerService.wasm**
+	- **AcuantImageWorker.min.js**
+	- **AcuantImageService.js**
+	- **AcuantImageService.wasm**
+	- **AcuantMetricsWorker.min.js**
+	- **AcuantMetricsService.js**
+	- **AcuantMetricsService.js.mem**
 	
-		<script async src="AcuantJavascriptWebSdk.min.js"></script>
+
+1. Load the main script files, excluding ones that will not be used:
+	
+		<script src="AcuantJavascriptWebSdk.min.js"></script>
+		<script async src="AcuantCamera.min.js"></script>
+		<script async src="AcuantPassiveLiveness.min.js"></script>
+		
 
 1. Define a custom path to load files (if different than root):
 
 		const acuantConfig = {
 			path: "/custom/path/to/sdk/"
 		}
-		
-1. Optionally, you can modify the JPEG quality setting in acuantConfig, however, Acuant discourages users from decreasing the quality unless absolutely necessary. Note that compression can result in certain tests being skipped, and Acuant strongly advises users against compressing below 600-1200 kb.
-
-		const acuantConfig = {
-			//other fields
-			jpegQuality: (float in the range of 0 to 1 with 0 being very low quality and 1 being the highest quality)
-		}
     	
-1. Define a callback *before* the script tag in step 2. This is an optional global JavaScript function that is executed after Wasm is loaded.
+    	
+1. Define a callback *before* the script tag in step 2. This is an optional global JavaScript function that is executed after WASM is loaded.
 		
 		var onAcuantSdkLoaded = function(){
-	       //sdk has been loaded;
+			//sdk has been loaded;
 		}
-	     
+
+1. Optionally, define a method as a callback for unexpected errors in situations where one of the other error callbacks could not be called. This callback should rarely, if ever, be called. If the callback is getting called, review the implementation as it more often than not indicates a flaw in the implementation.
+
+		AcuantJavascriptWebSdk.setUnexpectedErrorCallback((error) => {
+			//handle the error
+		});
+
+
 ----------
-## Initialize and Start Web Worker
 
-1. Start the HTML5 Web Worker. (**Note**: Only one worker is allowed per application therefore, if you previously called start, it won't start another instance.)
+## Initialize and Start the SDK
 		
-		AcuantJavascriptWebSdk.start();
-		
-1. Set the credentials (either bearer token or basic auth format in base64) and ACAS endpoint required to initialize the Worker.
+1. Set the credentials (either bearer token or basic auth format in base64) and ACAS endpoint, then initialize the SDK with one of the following methods:
 
-		function initialize(
-			token : string, //Acuant credentials in base64 (basic auth format id:pass)
-			endpoint : string, //endpoint for Acuant's ACAS server
-			callback: object); //callback shown below
+	**Note:** AcuantInitializerWorker is started and ended automatically as needed.
+
+		AcuantJavascriptWebSdk.initialize(
+			token: string, //Acuant credentials in base64 (basic auth format id:pass)
+			endpoint: string, //endpoint for Acuant's ACAS server
+			callback: object, //callback shown below
+			fromCDN: int //set to 1 if hosting via cdn, defaults to 0
+		);
 			
 		//or
 		
-		function initializeWithToken(
-			token : string, //bearer token
-			endpoint : string, //endpoint for Acuant's ACAS server
-			callback: object); //callback shown below
+		AcuantJavascriptWebSdk.initializeWithToken(
+			token: string, //bearer token
+			endpoint: string, //endpoint for Acuant's ACAS server
+			callback: object, //callback shown below
+			fromCDN: int //set to 1 if hosting via cdn, defaults to 0
+		);
 	
-		var callback = {
-			onSuccess:function(){
+		let callback = {
+			onSuccess:function() {
+				//proceed with using the sdk
 			},
-			onFail:function(code, description){
+			onFail:function(code, description) {
+				//handle the error
 			}
 		}
+		
 	Use the following ACAS endpoints based on region:
 	
 		USA: https://us.acas.acuant.net
@@ -118,21 +151,34 @@ The SDK includes the following modules:
 	
 		PREVIEW: https://preview.acas.acuant.net
 		
-1. Initialize the Worker. (**Note**: If worker has not been started, this call will start the Worker.)
+1. After *initialize* or *initializeWithToken* succeeds, start the Web Workers. By default, the function *startWorkers* starts all the Workers. Alternately, you can provide a list of Worker identifiers to start.
 
-		AcuantJavascriptWebSdk.initialize(
-            token, 
-            endpoint,
-            callback);
-
-1. End the Worker. (**Note**: You should *only* end the Worker if the library is no longer needed. It is expensive to start and end web workers.)
+		AcuantJavascriptWebSdk.startWorkers(
+			callback: function, //callback shown below
+			workers: array<string>, //possible list shown below, defaults to all workers
+			fromCDN: int //set to 1 if hosting via cdn, defaults to 0
+		);
 		
-		AcuantJavascriptWebSdk.end();
-            
+		workers = [
+			AcuantJavascriptWebSdk.ACUANT_IMAGE_WORKER,
+			AcuantJavascriptWebSdk.ACUANT_METRICS_WORKER
+		]
+		
+		callback = () => {} //no params, void function, called when workers are ready.
+
+
+1. Ending the Workers. (**Note**: Do not end Workers unless they are no longer needed. Do end the workers when they are no longer needed or when the user will leave the page.)
+		
+		AcuantJavascriptWebSdk.endWorkers(
+			workers: array<string> // same as for starting the workers, defaults to all workers
+		);
+
+
 ----------
+
 ## Live Capture using WebRTC
 
-Live capture offers guidance to the user to position documents and initiates autocapture when detected. This feature is present only when WebRTC is available in the browser. 
+Live Capture offers guidance to users to position documents, and initiates autocapture when detected. This feature is present only when WebRTC is available in the browser. 
 
 **Supported browsers**
 
@@ -145,8 +191,8 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 
 **Camera Preview**
 
-- **Android**: Android uses browser supported fullScreen mode for camera preview. User can exit out of this fullscreen mode. Acuant recommends hiding all visual elements on page while camera is shown.
-- **iOS**: iOS will fill the width of the screen with the camera preview, typically with some unfilled space at the top and bottom (iOS cameras tend to display in 4:3, whereas screens tend to display in widescreen). Therefore, some elements of the page might be visible. Acuant recommends hiding all visual elements and optionally adding some background elements as otherwise the background will be white.
+- **Android**: Android uses browser-supported fullScreen mode for camera preview. Users can exit out of this fullscreen mode. Acuant recommends hiding all visual elements on the page while the camera is shown.
+- **iOS**: iOS will fill the width of the screen with the camera preview, typically with some unfilled space at the top and bottom (iOS cameras tend to display in 4:3, whereas screens tend to display in widescreen). Therefore, some elements of the page might still be visible. Acuant recommends hiding all visual elements and optionally adding some background elements as otherwise the background will be white.
 
 **Tap to Capture**
 
@@ -155,27 +201,31 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 
 
 ----------
+
 ## AcuantCameraUI
 
-**Prerequisite**: Initialize Acuant Worker (see [Initialize and Start Web Worker](#initialize-and-start-web-worker))
+**Prerequisite**: Initialize the SDK (see [Initialize and Start the SDK](#initialize-and-start-the-sdk))
 
-- This is used for live capture; live detection, frame analysis, and auto capture of documents. After capture, it also processes the image.
-- AcuantCameraUI is the default implementation of the UI and uses AcuantCamera to access device's native camera via WebRTC.
+- This code is used for live capture; live detection, frame analysis, and auto capture of documents. After capture, it also processes the image.
+- AcuantCameraUI is the default implementation of the UI and uses AcuantCamera to access the device’s native camera via WebRTC.
 
 ### Start Live Capture
 
+1. Add a viewport meta tag (if not already present) to prevent the video/ui from rendering at a much higher resolution than it needs to:
+
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+
 1. Add HTML to show the live capture preview:
 		
-		<video id="acuant-player" controls autoplay style="display:none;" playsinline></video>
-		<canvas id="acuant-video-canvas" width="100%" height="auto"></canvas>
+		<div id="acuant-camera"></div>
 
 1. Set custom strings. (Optional)
 
-		var options = {
+		let options = {
 			text:{
 				NONE: "ALIGN",
 				SMALL_DOCUMENT: "MOVE CLOSER",
-				GOOD_DOCUMENT: null,//default countdown
+				GOOD_DOCUMENT: null,//if let null will show a countdown
 				CAPTURING: "CAPTURING",
 				TAP_TO_CAPTURE: "TAP TO CAPTURE"
 			}
@@ -192,16 +242,14 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 			onCropped: function(response){
 				if (response) {
 					//use response
-				}
-				else{
+				} else {
 					//cropping error
 					//restart capture
 				}
 			},
 			onFrameAvailable: function(response){
 				//this is optional
-				//get each frame if needed
-				//console.log(response)
+				//Use only if you plan to display custom UI elements in addition to what is already displayed by the camera.
 				response = {
 					type: Number,
 					dimensions: Object,
@@ -219,29 +267,40 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 
 1. Start live capture camera.
 
-		AcuantCameraUI.start(cameraCallback, (error) => {
-			//constraint error or camera not supported
-			//show manual capture
-		}, options)
-		    
+		AcuantCameraUI.start(
+			cameraCallback, //shown above
+			(error, code) => {}, //error will be more specific, while the code broader. See current list of codes below. Please handle different or null codes, though they are not expected to occur.
+			options //shown above
+		)
+		
+		codes = [
+			AcuantJavascriptWebSdk.START_FAIL_CODE, //This means the camera failed to start either because it is not supported or because the user declined permission.
+			AcuantJavascriptWebSdk.REPEAT_FAIL_CODE, //This means Live Capture was called after an error with Live Capture already occurred. Important: When this happens, the user is directed to Manual Capture. Use this error callback to set up your display as you would for a user in Manual Capture.
+			AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE //This can happen on iOS 15 due to a GPU Highwater failure. See known issues for more information.
+		]
+		
+	**Note**: For all full captures, in the event of an error, direct the user to manual capture (detailed in the next section).
+
 1. End Camera.
 
 		AcuantCameraUI.end();
 	
 	**Note**: Once AcuantCameraUI onCaptured is called, the end API is internally executed.
 	
-If you are not using AcuantCameraUI and you wish to use your own live capture UI, you can call AcuantCamera directly to utilize document detection, frame analysis, and auto capture (see [Use Your Own Custom Live Capture UI](#use-your-own-custom-live-capture-ui)).
-	
+If you are not using AcuantCamerUI, and you want to use your own live capture UI, you can call AcuantCamera directly to use document detection, frame analysis, and auto capture (see [Use Your Own Custom Live Capture UI](#use-your-own-custom-live-capture-ui)).
+
+
 ----------
 
 ## AcuantCamera
 
-**Prerequisite:**
-	Initialize Acuant Worker (see [Initialize and Start Web Worker](#initialize-and-start-web-worker)).
+**Prerequisite:** Initialize the SDK (see [Initialize and Start the SDK](#initialize-and-start-the-sdk)).
 
 ### Start Manual Capture
 
 - This camera is used for manual capture. It opens the device's native camera app, which is useful when WebRTC is not available. Unlike AcuantCameraUI, it does not provide frame analysis or document detection. It does process the image after capture.
+
+**Note:** Launching Live Capture after a Live Capture error directs users to Manual Capture. For best practice, do not rely on this behavior, and send users to Manual Capture from within your implementation.
 	
 1. Start manual capture. For more information on the processed image returned via **onCropped**, see [Image from AcuantCameraUI and AcuantCamera](#image-from-acuantcameraui-and-acuantcamera). 
 		
@@ -268,80 +327,35 @@ If you are not using AcuantCameraUI and you wish to use your own live capture UI
 	
 ### Use Your Own Custom Live Capture UI
 
-When not using the default AcuantCameraUI for the live capture preview. You can implement your own live capture preview and use AcuantCamera to do the frame analysis, document detection, and auto capture.
-		
-1. Add HTML:
-		
-		<video id="acuant-player" controls autoplay style="display:none;" playsinline></video>
-		<canvas id="acuant-video-canvas" width="100%" height="auto"></canvas>
-		
-1. Start the Camera Preview:
+When you are not using the default AcuantCameraUI for the live capture preview, you can implement your own live capture preview and use AcuantCamera to do the frame analysis, document detection, and auto capture. Consider looking at the non-minified AcuantCameraUI in AcuantCamera.js.
 
-		const player = document.getElementById('acuant-player');
+The general flow of a custom camera ui is as follows:
+
+1. Attach a listener for the following event on the camera:
 		
-		const videoCanvas = document.getElementById('acuant-video-canvas');
-		const videoContext = videoCanvas.getContext('2d');
-			
-		player.addEventListener('play', function () {
-			var $this = this; //cache
-			(function loop() {
-			  if (!$this.paused && !$this.ended) {
-			    videoContext.drawImage($this, 0, 0, videoCanvas.width, videoCanvas.height);
-			    
-			    //draw any custom UI here
-			    //draw on the videoCanvas and videoContext
-			    
-			    setTimeout(loop, 1000 / 60); // drawing at 60fps
-			  }
-			})();
-		}, 0);	
+		acuantCamera.addEventListener('acuantcameracreated', ...
+		
+	This event will be issued after the camera setup is complete. At this point, the document will contain two elements: acuant-ui-canvas (a canvas element) and acuant-player (a video element). The video element will show the feed from the camera while the canvas is used to draw your custom ui.
+		
+1. Start the AcauntCamera
 
-1. Start the frame analysis. Pass in a callback that will be called while camera is active.
+		AcauntCamera.start(
+			(response) => {}, //detect callback (see onFrameAvalible in part 3 of AcauntCameraUI for response body)
+			(error, code) => {} //error callback (see part 4 of AcuantCameraUI)
+		)
 
-		 AcuantCamera.start((response) => {
-	      	response = {
-	      		//type of document
-	      		type: AcuantCamera.ACUANT_DOCUMENT_TYPE,
-	      		
-	      		//state of camera
-	      		state: AcuantCamera.DOCUMENT_STATE,
-	      		
-	      		//points of document corners
-	      		points: [{x: Number, y: Number}, {x: Number, y: Number}, {x: Number, y: Number}, {x: Number, y: Number}],
-	      		
-	      		//dimensions of document
-	      		dimesions:{ width: Number, Height: Number },
-	      		
-	      		//document dpi
-	      		dpi: Number,
-	      		
-	      		//if document has correct aspect ratio
-	      		isCorrectAspectRatio: boolean
-	      }
-	    }, error => {
-	    	//error occured. Most likely WebRTC not supported. Use manual capture
-	    });
-	    
-1. Capture when document is ready.
+1. From here, use the detect callback to handle frames, update your UI, and trigger capture. When you are ready to trigger the capture, call the following method:
 
-		AcuantCamera.triggerCapture((response) => {
-			if (response) {
-				response = {
-					image: { 
-						data: String,
-						width: Number,
-						height: Number
-					}, 
-					glare: Number, 
-					sharpness: Number,
-					cardType: Number,//define card type, None = 0, ID = 1, Passport = 2
-					dpi: Number
-            	}
-	      	}
-	      	else {
-	      		//error
-	      	}
-    	});    
+		AcuantCamera.triggerCapture((response) => {})
+		
+		response = {
+			data: object, //imgData
+			width: number, 
+			height: number
+		}
+		
+1. Use the response as necessary. When you are ready, go to the section [Process the Image Manually](#Process-the-Image-Manually)
+   
 
 **AcuantCamera Info**
 
@@ -361,20 +375,21 @@ When not using the default AcuantCameraUI for the live capture preview. You can 
 		    };
 		    
 		    // open manual capture
-		    function startManualCapture(cb, errorCb)
+		    function startManualCapture(cameraCb)
 		    
 		    // used for live capture UI (AcuantCameraUI or custom)
-		    function start(cb, errorCb)//start the frame analysis
+		    function start(detectCb, cameraCb, errorCb)//start the frame analysis
 		    function triggerCapture(cb)//capture
+		    function evaluateImage(imgData, width, height, capType, callback)//performs the full workflow of crop, sharpness, glare, and other metrics.
 		    function end()//end camera
 		    
 		})();
 		
 ----------
+
 ## Process the Image
 
-**Prerequisite:**
-	Initialize Acuant Worker (see [Initialize and Start Web Worker](#initialize-and-start-web-worker)).
+**Prerequisite:** Initialize the SDK (see [Initialize and Start the SDK](#initialize-and-start-the-sdk)).
 	
 ### Image from AcuantCameraUI and AcuantCamera ###
 	
@@ -389,6 +404,7 @@ Here is the response from the callback:
             response = {
 					image: { 
 						data: String,
+						bytes: ByteArray,
 						width: Number,
 						height: Number
 					}, 
@@ -405,56 +421,28 @@ If the sharpness value is greater than 50, then the image is considered sharp (n
 
 ### Process the Image Manually ###
 	
-This information is for processing images manually if not captured through AcuantCameraUI and AcuantCamera.
+This information is for processing images manually if they are not captured through AcuantCameraUI and AcuantCamera. This is not relevant for most implementations.
 	
-1. Info on the crop function:
+1. When you are ready to evaluate the image, use the following method:
 		
-		function crop(
-			data : object, //image data from context object shown below
-			width : number, //width of image
-			height: number,  //height of image
-			callback: object, //callback shown below);
+		AcuantCamera.evaluateImage(
+			imgData: Object, //received from trigger capture
+			width: Number, //received from trigger capture
+			height: Number, //received from trigger capture
+			capType: String, //Used for metrics on how the image was captured, put "CUSTOM" or leave blank for best results
+			callback: Function //shown below
+		)
 
-2. Create a canvas for the image to be processed:
-
-		let canvas = document.createElement('canvas'),
-			context = canvas.getContext('2d'),
-			context.drawImage(YOUR_IMAGE, 0, 0, MAX_WIDTH = 2560, MAX_HEIGHT = 1920),
-			imgData = context.getImageData(),
-      
-3. Add the callback:
-
-		var callback = {
-			onSuccess:function(result){
-				result = {
-					dpi: Number,
-					sharpness: Number,
-					glare: Number,
-					cardType: Number,//card type, 0 = None, 1 = ID, 2 = Passport
-					image:{
-						data: String,
-						width: Number,
-						height: Number
-					}
-				}
-			},
-			onFail:function(){
-			}
-		}
-
-4. Call the crop function:
-
-		AcuantJavascriptWebSdk.crop(
-			imgData,
-			width, 
-			height,  
-        	callback);
+		let callback = (response) => {}
+		
+	For the response structure, see [Image from AcuantCameraUI and AcuantCamera](#image-from-acuantcameraui-and-acuantcamera).
 
 
 -------------------------------------------------------------
+
 ## Face Capture and Acuant Passive Liveness
-**Prerequisite:**
-	To use the face capture and FaceID API, credentials with FaceID must be enabled. 
+
+**Prerequisite:** To use the face capture and FaceID API, credentials with FaceID must be enabled. 
 
 Acuant recommends using the **LiveAssessment** property rather than the score) to evaluate response. **AcuantPassiveLiveness.startSelfieCapture** will return a rescaled image.
 
@@ -524,7 +512,7 @@ The following may significantly increase errors or false results:
 					"NotFound"
 			}
 		})
-	
+
 
 ----------
 
@@ -532,52 +520,113 @@ The following may significantly increase errors or false results:
 
 Web Workers/WASM and CDNs can be used together with workarounds. The following changes would need to be added to your code to host the Web Workers/WASM through a CDN:
 
-1. Add the following code to point to the Worker:
+1. To locate the Workers, add the following code:
 
-        <script id="AcuantWebWorkerSource" type="worker">
-          importScripts("https://your.CDN.URL/AcuantImageProcessingWorker.min.js");
-        </script>
+		
+		<script id="AcuantInitializerSource" type="worker">
+			importScripts("https://your.CDN.URL/AcuantInitializerWorker.min.js");
+		</script>
+		<script id="AcuantImageSource" type="worker">
+			importScripts("https://your.CDN.URL/AcuantImageWorker.min.js");
+		</script>
+		<script id="AcuantMetricsSource" type="worker">
+			importScripts("https://your.CDN.URL/AcuantMetricsWorker.min.js");
+		</script>
         
 1. Add the following function in your code:
 
-        function getURL() {
-          const txt = document.getElementById( 'AcuantWebWorkerSource' ).textContent;
-          return URL.createObjectURL( new Blob( [ txt ] ) );
-        }
+		
+		function getURL() {
+			const initTxt = document.getElementById( 'AcuantInitializerSource' ).textContent;
+			const initUrl = URL.createObjectURL( new Blob( [ initTxt ] ) );
+			const imageTxt = document.getElementById( 'AcuantImageSource' ).textContent;
+			const imageUrl = URL.createObjectURL( new Blob( [ imageTxt ] ) );
+			const metricsTxt = document.getElementById( 'AcuantMetricsSource' ).textContent;
+			const metricsUrl = URL.createObjectURL( new Blob( [ metricsTxt ] ) );
+			const out = {
+				initializerUrl: initUrl,
+				imageUrl: imageUrl,
+				metricsUrl: metricsUrl
+			};
+			return out;
+		}
         
-1. Before calling initialize, replace the path in acuantConfig with result of the getURL():
+1. Before calling initialize, set cdnPath in acuantConfig to the result of the getURL():
 
-        acuantConfig.path = getURL();
+		acuantConfig.cdnPath = getURL();
         
-1. The initialize function contains a fourth variable that is set to 0 by default. Change this value to 1.
+1. Set the value of fromCDN (defaults to 0) in the following functions to 1.
 
-        AcuantJavascriptWebSdk.initialize(base64Token, acas_endpoint, callback, 1);
-        //or
-        AcuantJavascriptWebSdk.initializeWithToken(oauthToken, acas_endpoint, callback, 1);
+		AcuantJavascriptWebSdk.initialize(base64Token, acas_endpoint, callback, 1);
+		//or
+		AcuantJavascriptWebSdk.initializeWithToken(oauthToken, acas_endpoint, callback, 1);
+		//and
+		AcuantJavascriptWebSdk.startWorkers(callback, [list, of, worker, identifiers], 1)
         
-1. Web Workers running from CDNs have issues with relative URLs. In order for the Web Worker to be able to find the associated .wasm file you will need to provide it with the absolute URL of the wasm file.
+1. Web Workers running from CDNs have issues with relative URLs. In order for the Web Worker to be able to find the associated files you will need to provide it with the absolute URL where the file will be hosted.
 
-- Acuant provides a script within the repo called convert_for_cdn.sh. Run this script by giving it the path to the AcuantImageProcessingWorker.min.js and the full URL for the .wasm file and it will modify AcuantImageProcessingWorker.min.js for you. Please note the script conducts limited sanity checks and if given the wrong parameters might behave unexpectedly.
+- Acuant provides a script within the repo called convert_for_cdn.sh. Run this script by giving it the path to the folder containing the sdk and the URL for where the WASM files will be on the CDN. It will then modify the workers for you. Note that the script conducts limited sanity checks, and if given the wrong parameters, might behave unexpectedly.
 
-        bash convert_for_cdn.sh webSdk/dist/AcuantImageProcessingWorker.min.js https://your.CDN.URL/AcuantImageProcessingWorker.wasm
+		#Convert to absolute urls for use with CDNs
+		#$1=file directory
+		#$2=absolute url up to file location on CDN including trailing slash (ie https://company.example/files/ but not https://company.example/files/file.wasm or https://company.example/files)
+		
+		bash convert_for_cdn.sh webSdk/dist/ https://your.CDN.URL/
 
-- If the script doesn't provide the desired outcome, or if you prefer to manually edit the file, open the AcuantImageProcessingWorker.min.js file with your preferred text editor. Find the section of code that reads: wasmBinaryFile="AcuantImageProcessingWorker.wasm"; and replace the value of the string with the absolute URL for the .wasm file.
+- If the script doesn't provide the desired outcome, or if you prefer to manually edit the files, you will need to change the following fields to their absolute equivalent in the following files.
+		
+		="AcuantInitializerService.wasm" in AcuantInitializerService.min.js
+		="AcuantImageService.wasm" in AcuantImageService.min.js
+		="AcuantMetricsService.js.mem" in AcuantMetricsService.min.js
+		
+		importScripts("AcuantInitializerService.min.js") in AcuantInitializerWorker.min.js
+		importScripts("AcuantImageService.min.js") in AcuantImageWorker.min.js
+		importScripts("AcuantMetricsService.min.js") in AcuantMetricsWorker.min.js
+
+----------
+
+## Improved support for devices with extreme memory constraints.
+
+Although the Web Workers use only a minimal amount of memory, you can reduce the memory usage by running only one of the Web Workers at a time. This is recommended only if you have severe memory constraints that you can not address any other way. Normally when both **AcauntImageWorker** and **AcuantMetricsWorker** are running simultaneously, they seamlessly make calls between themselves until they are ready to return a finished image that has been cropped and has had all the metrics run on it. If only one is running at a time, the workflow has to look like this:
+
+- AcuantImageWorker is started to perform detect in your custom camera implementation
+- AcuantImageWorker is ended and AcuantMetricsWorker is started to perform moire on the uncropped image
+- AcuantMetricsWorker is ended and AcuantImageWorker is started to crop the image
+- AcuantImageWorker is ended and AcuantMetricsWorker is started to perform the remaining metrics on the cropped image
+
+Starting and stopping Workers is a very slow operation, so you will see performance losses with this approach. Therefore, use this approach only if absolutely necessary. See [Reference of AcuantJavascriptWebSdk methods](#reference-of-acuantjavascriptwebsdk-methods) for more information about the methods.
 
 ----------
 
 ## Known Issues
 
-1. When using Passive Liveness camera on Google Chrome for Android, the camera defaults to the back facing instead of the front facing camera. Users can tap to switch to the front facing camera.
+1. iOS 15 has multiple issues that manifest themselves as GPU Highwater failures (ie system daemon used too much memory).
 
-	This is a Chrome issue and unfortunately, we cannot provide a workaround at this time.
+	We have done what we can to delay/prevent the occurrence of the issues and will continue monitoring/investigating further improvements. However, at this moment we believe the root cause to be on Apple's/Safari's side. The issue is more prevalent on older iOS 15 devices and is less likely to occur on newer devices. Currently, the issue should be detected successfully by the camera and reported to the implementer as a code: AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE. The GPU failure will render the live capture unusable, forcing users to go to Manual Capture as an alternative.
+
+1. The camera preview has a low/throttled frame rate (as low as 10-15fps).
+
+	The frame rate is intentionally throttled because higher frame rates on iOS 15 can be unstable. For consistency, the frame rate is throttled on all devices. In our experience, the throttled frame rate is high enough to successfully perform Live Capture. We will continue to monitor this issue and will remove the throttle once we believe higher frame rates no longer cause instability.
+		
+1. Nothing happens when the page/scripts load.
+
+	Verify that AcuantJavascriptWebSdk.min.js is not loaded asynchronously. Currently, loading the file asynchronously is not supported. The file is small and should not take long to load synchronously.
+
+1. After encountering an error, further calls to Live Capture go to Manual Capture.
+
+	This behavior is intended, and is not an issue. This behavior has been the intended workflow since release.
+
+1. When using Passive Liveness camera on Google Chrome for Android, the camera defaults to the back-facing instead of the front-facing camera. 
+
+	Users can tap to switch to the front-facing camera. This is a Chrome issue and unfortunately, we cannot provide a workaround at this time.
 
 	See: 
 	[https://bugs.chromium.org/p/chromium/issues/detail?id=1182828]()
 	[https://stackoverflow.com/questions/56721653/why-doesnt-capture-user-change-my-phones-camera-to-front-facing]()
 	
-1. When embedding the AcuantCamera live capture preview onto an iframe, it may squish the preview causing capture and document detection issues. The workaround is to add iframe properties in the CSS.
+1. When embedding the AcuantCamera live capture preview onto an iframe, it may squish the preview causing capture and document detection issues. 
 
-	Add the following iframe properties in the CSS on the page that will use the iframe:
+	The workaround is to add iframe properties in the CSS. Add the following iframe properties in the CSS on the page that will use the iframe:
 
 		iframe {
 			border: 0 !important;
@@ -597,16 +646,35 @@ Web Workers/WASM and CDNs can be used together with workarounds. The following c
 			}
 		}
 		
-	Add the HTML canvas on the page embedded in the iframe:
+	Then add the regular HTML content to the page embedded in the iframe.
 
-		<div style="display:none" id="camera">
-			<video id="acuant-player" controls="" autoplay="" style="display:none;" playsinline=""></video>
-			<div style="text-align: center !important;width: 100% !important;">
-				<canvas id="acuant-video-canvas" width="100%" height="auto"></canvas>
-			</div>
-		</div>
-		
+
 ----------
+
+## Reference of AcuantJavascriptWebSdk methods
+
+**Note:** This information is provided only as a reference. All relevant functions are covered in more detail in specific sections of the Readme.
+
+		AcuantJavaScriptSdk {
+			ACUANT_IMAGE_WORKER: "AcuantImageWorker",
+			ACUANT_METRICS_WORKER: "AcuantMetricsWorker",
+
+			startInitializer: function(cb, fromCDN = 0),
+			endInitializer: function(),
+			startWorkers: function(cb, workers = [ACUANT_IMAGE_WORKER, ACUANT_METRICS_WORKER], fromCDN = 0),
+			endWorkers: function(workers = [ACUANT_IMAGE_WORKER, ACUANT_METRICS_WORKER]),
+			initialize: function(credentials, endpoint, callback, fromCDN = 0),
+			initializeWithToken: function(token, endpoint, callback, fromCDN = 0),
+			crop: function(imgData, width, height, callback),
+			metrics: function(imgData, width, height, callback),
+			moire: function(imgData, width, height, callback),
+			detect: function(imgData, width, height, callback),
+			setUnexpectedErrorCallback: function(callback)
+		}
+
+
+----------
+
 **Copyright 2021 Acuant Inc. All rights reserved.**
 
 This document contains proprietary and confidential information and creative works owned by Acuant and its respective licensors, if any. Any use, copying, publication, distribution, display, modification, or transmission of such technology, in whole or in part, in any form or by any means, without the prior express written permission of Acuant is strictly prohibited. Except where expressly provided by Acuant in writing, possession of this information shall not be construed to confer any license or rights under any Acuant intellectual property rights, whether by estoppel, implication, or otherwise.

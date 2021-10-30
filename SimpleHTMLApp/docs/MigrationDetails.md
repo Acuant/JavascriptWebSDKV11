@@ -1,19 +1,71 @@
-# Migration Details JavaScript Web SDK v11.4.*
+# Migration Details JavaScript Web SDK
 
-**v11.4.2 November 2020**
+**v11.5.0**
+
+Delete all old sdk files then copy in the new ones:
+
+	- **AcuantJavaScriptSdk.min.js**
+	- **AcuantCamera.min.js**
+	- **AcuantPassiveLiveness.min.js**
+	- **AcuantInitializerWorker.min.js**
+	- **AcuantInitializerServicejs**
+	- **AcuantInitializerService.wasm**
+	- **AcuantImageWorker.min.js**
+	- **AcuantImageService.js**
+	- **AcuantImageService.wasm**
+	- **AcuantMetricsWorker.min.js**
+	- **AcuantMetricsService.js**
+	- **AcuantMetricsService.js.mem**
+
+Replace your imports with the following:
+
+	<script src="AcuantJavascriptWebSdk.min.js"></script>
+	<script async src="AcuantCamera.min.js"></script>
+	<script async src="AcuantPassiveLiveness.min.js"></script>
+		
+Remove the old html elements (canvas and video) and replace them with a single div with the following ID:
+
+	<div id="acuant-camera"></div>
+      
+Most likely, you are already using a viewport meta tag for your Mobile page. Using a meta tag is now a requirement. If you don’t use the tag, the device will render at a much higher resolution and cause frequent GPU and memory failures.
+
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+		
+In your *onSuccess* from the initialize function, add the following:
+
+	AcuantJavascriptWebSdk.startWorkers(() => {
+		//continue init here
+	});
+		
+The AcuantCameraUI error callback has an additional parameter. For a current list of codes, see the AcuantCameraUI section of the Readme. 
+
+	Replace this:
+		AcuantCameraUI.start(cameraCallback, (error) => {});
+	With:
+		AcuantCameraUI.start(cameraCallback, (error, code) => {});
+		
+After Live Capture fails, subsequent calls to Live Capture will start Manual Capture. This is intended as a fallback and not behavior to rely on. You should still configure your implementation to call Manual Capture after an error.
+
+The error state is stored through a temporary cookie between page reloads. This behavior is intended to help mitigate an iOS 15 issue and to create a smoother workflow when a camera permission has been permanently declined.
+		
+On old iOS devices, consider not running metrics as the devices can struggle to run them. See the readme or the sample app for how to start only the image worker. Improving metrics performance on old iOS devices will be investigated in the future.
+		
+If you are using custom camera implementations, review the **Use Your Own Custom Live Capture UI** section of the Readme because the process has changed.
+
+
+----------
+
+**v11.4.2**
 
 ## ACAS endpoint now required for initialization.
 
-- Replace the old id_endpoint with the new acas_endpoint in the initialize method.
+- Replace the old `id_endpoint` with the new `acas_endpoint` in the initialize method. For more information, see [here](https://github.com/Acuant/JavascriptWebSDKV11/blob/master/#initialize-and-start-web-worker).
 
-	These are the endpoints per region:
-	USA: https://us.acas.acuant.net
-	EU: https://eu.acas.acuant.net
-	AUS: https://aus.acas.acuant.net
-
-**v11.4.0 July 2020**
 
 ----------
+
+**v11.4.0**
+
 ## Updated Supported Browsers for Live Capture
 - Live capture will not be supported on Firefox at this time.
 - If the device is running earlier than iOS 13.0, then Live Capture will not be supported.
@@ -88,7 +140,7 @@
 			height: { min: 1440, ideal: 1440 },
 			aspectRatio: 1.777777778
 		}
-    
+
 
 -------------------------------------------------------------
 
