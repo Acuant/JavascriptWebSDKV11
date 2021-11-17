@@ -52,6 +52,10 @@ On old iOS devices, consider not running metrics as the devices can struggle to 
 		
 If you are using custom camera implementations, review the **Use Your Own Custom Live Capture UI** section of the Readme because the process has changed.
 
+If you are using an implementation that loads the SDK at a later point (for example, after the page is fully loaded), once the scripts are fully loaded, call the following function:
+
+	loadAcuantSdk();
+
 
 ----------
 

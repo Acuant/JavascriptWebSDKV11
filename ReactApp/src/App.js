@@ -20,7 +20,7 @@ global Raven
 
 class App extends Component {
 
-    constructor(props){
+    constructor(props) {
         super(props);
         this.state = {
             isAcuantSdkLoaded: false
@@ -31,7 +31,7 @@ class App extends Component {
 
     componentDidMount() {
         if (process.env.REACT_APP_SENTRY_SUBSCRIPTION_ID && process.env.REACT_APP_SENTRY_SUBSCRIPTION_ID.length > 0) {
-            Raven.config(process.env.REACT_APP_SENTRY_SUBSCRIPTION_ID).install()
+            Raven.config(process.env.REACT_APP_SENTRY_SUBSCRIPTION_ID).install();
         }
 
         if (process.env.REACT_APP_MOBILE_ONLY === 'true') {
@@ -51,66 +51,101 @@ class App extends Component {
             }
             this.loadScript();
         }
-        
-  
     }
 
-    loadScript(){
-        window.onAcuantSdkLoaded = function(){
-            this.initialize();
-        }.bind(this);
-
+    loadScript() {
         const sdk = document.createElement("script");
         sdk.src = "AcuantJavascriptWebSdk.min.js";
-        sdk.async = true;
-
-      
+        sdk.onload = () => window.loadAcuantSdk();
+        window.onAcuantSdkLoaded = () => this.initialize();
         document.body.appendChild(sdk);
+
+        const camera = document.createElement("script");
+        camera.src = "AcuantCamera.min.js";
+        document.body.appendChild(camera);
+
+        const passiveLiveness = document.createElement("script");
+        passiveLiveness.src = "AcuantPassiveLiveness.min.js";
+        document.body.appendChild(passiveLiveness);
     }
 
     componentDidCatch(error, errorInfo) {
         if (process.env.REACT_APP_SENTRY_SUBSCRIPTION_ID && process.env.REACT_APP_SENTRY_SUBSCRIPTION_ID.length > 0) {
             Raven.captureException(error, {extra: errorInfo});
         }
-        this.props.routerHistory.push('/error/default')
+        this.props.routerHistory.push('/error/default');
     }
 
-    initialize(){
-        if(!this.isInitialized && !this.isIntializing){
+    initialize() {
+        if (!this.isInitialized && !this.isIntializing) {
             this.isIntializing = true;
 
             window.AcuantJavascriptWebSdk.initialize(
-                (function(){
-                    if(process.env.NODE_ENV === 'development'){
+                (function() {
+                    if (process.env.NODE_ENV === 'development') {
                         return btoa(`${process.env.REACT_APP_USER_NAME}:${process.env.REACT_APP_PASSWORD}`);
-                    }
-                    else{
+                    } else {
                         return process.env.REACT_APP_AUTH_TOKEN;
                     }
                 })(), 
                 process.env.REACT_APP_ACAS_ENDPOINT,
                 {
-                    onSuccess:function(){
-                        this.isInitialized = true;
-                        this.isIntializing = false;
-                        this.setState({
-                            isAcuantSdkLoaded:true
-                        })
+                    onSuccess: function() {
+                        if (!this.isOldiOS()) {
+                            window.AcuantJavascriptWebSdk.startWorkers(this.initDone.bind(this));
+                        } else {
+                            window.AcuantJavascriptWebSdk.startWorkers(this.initDone.bind(this), [window.AcuantJavascriptWebSdk.ACUANT_IMAGE_WORKER]);
+                        }
                     }.bind(this),
 
-                    onFail: function(){
+                    onFail: function() {
                         this.isIntializing = false;
                         this.setState({
-                            isAcuantSdkLoaded:true
+                            isAcuantSdkLoaded: true
                         })
                     }.bind(this)
                 });
         } 
     }
 
+    isOldiOS() {
+        let ua = navigator.userAgent;
+        let keyPhrase = "iPhone OS";
+        const keyPhrase2 = "iPad; CPU OS";
+        let index = ua.indexOf(keyPhrase);
+        if (index < 0) {
+            keyPhrase = keyPhrase2;
+            index = ua.indexOf(keyPhrase);
+        }
+        if (index >= 0) {
+            let version = ua.substring(index + keyPhrase.length + 1, index + keyPhrase.length + 3);
+            try {
+                let versionNum = parseInt(version);
+                if (versionNum && versionNum < 13) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } catch (_) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    initDone() {
+        this.isInitialized = true;
+        this.isIntializing = false;
+        this.setState({
+            isAcuantSdkLoaded: true
+        })
+        console.log("initialize succeded");
+    }
+
     render() {
         if (!localStorage.getItem('acuantEula') && this.props.routerHistory.location.pathname !== "/eula") {
-            this.props.routerHistory.push("/eula")
+            this.props.routerHistory.push("/eula");
         } 
         
         return (

@@ -195,8 +195,8 @@ function mapStateToProps(state) {
         frontSubmitted: state.config.frontSubmitted,
         backSubmitted: state.config.backSubmitted,
         cardImage: state.captureProperties.image.data,
-        blurry: state.captureProperties.sharpness < 50,
-        hasGlare: state.captureProperties.glare < 50
+        blurry: state.captureProperties.sharpness < 50 && state.captureProperties.sharpness >= 0,
+        hasGlare: state.captureProperties.glare < 50 && state.captureProperties.glare >= 0
     };
 }
 

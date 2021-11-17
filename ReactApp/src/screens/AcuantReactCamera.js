@@ -1,25 +1,35 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import { connect } from "react-redux";
 import Processing from "./Processing";
 import {setCaptured} from "./actions/capturedActions";
 import {bindActionCreators} from "redux";
+import Header from './Header';
 
 class AcuantReactCamera extends Component {
   constructor(props) {
     super(props);
     this.detectedCount = 0;
     this.state = {
-      processing: false
+      processing: false,
+      liveCaptureFailed: false
     }
   }
 
   setProcessing(value) {
     this.setState({
+      ...this.state,
       processing: value
     })
   }
 
-  onCaptured(response) {
+  setLiveCaptureFailed(value) {
+    this.setState({
+      ...this.state,
+      liveCaptureFailed: value
+    })
+  }
+
+  onCaptured(_) {
     //document captured
     //this is not the final result of processed image
     //show a loading screen until onCropped is called
@@ -40,8 +50,8 @@ class AcuantReactCamera extends Component {
     }
   }
 
-  onFrameAvailable(response) {
-
+  onFrameAvailable(_) {
+    //do nothing
   }
 
   startCamera(){
@@ -54,18 +64,28 @@ class AcuantReactCamera extends Component {
         }, this.onError.bind(this));
       }
       else {
-        window.AcuantCamera.startManualCapture({
-          onCaptured: this.onCaptured.bind(this), 
-          onCropped: this.onCropped.bind(this)
-        }, this.onError.bind(this));
+        this.startManualCapture();
       }
     }
   }
 
-  onError(err){
-    window.AcuantCamera.isCameraSupported = false
-    alert("This device does not support Live Capture. Manual Capture will be started. Please try again.")
-    this.props.history.replace("/capture/photo")
+  startManualCapture() {
+    window.AcuantCamera.startManualCapture({
+      onCaptured: this.onCaptured.bind(this),
+      onCropped: this.onCropped.bind(this)
+    }, this.onError.bind(this));
+  }
+
+  onError(_, code) {
+    if (code === "repeat-fail") {
+      this.setLiveCaptureFailed(true);
+    } else if (code === "sequence-break") {
+      alert("Live Capture failed. Please try again.")
+      this.props.history.replace("/capture/photo")
+    } else {
+      alert("This device does not support Live Capture. Launch manual capture.")
+      this.props.history.replace("/capture/photo")
+    }
   }
 
   componentDidMount() {
@@ -77,15 +97,26 @@ class AcuantReactCamera extends Component {
   render() {
     if (this.state.processing) {
       return <Processing />
-    }
-    else {
+    } else if (this.state.liveCaptureFailed) {
       return (
-        <div>
-          <video id="acuant-player" controls autoPlay playsInline style={{ display: 'none' }}></video>
-          <div style={{ textAlign: 'center' }}>
-            <canvas id="acuant-video-canvas" width="100%" height="auto"></canvas>
+        <Fragment>
+          <Header />
+          <div className='body column'>
+            <div className='row wrapper icon' />
+            <div className='row wrapper description_container'>
+              <p className='description'>Live camera failed. </p>
+            </div>
+            <div className="wrapper column">
+              <label className='btn' onClick={() => this.startManualCapture()}>
+                <p className={'buttonBgText'}>Start manual capture</p>
+              </label>
+            </div>
           </div>
-        </div>
+        </Fragment>
+      )
+    } else {
+      return (
+        <div id="acuant-camera"></div>
       )
     }
 

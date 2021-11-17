@@ -1,6 +1,6 @@
-# Acuant JavaScript Web SDK v11.5.0
+# Acuant JavaScript Web SDK v11.5.1
 
-**October 2021**
+**November 2021**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -17,6 +17,19 @@ This software is subject to Acuant's end user license agreement (EULA), which ca
 ## Introduction
  
 This document provides detailed information about the Acuant JavaScript Web SDK. The JavaScript Web SDK allows developers to integrate image capture and processing functionality in their mobile web applications.
+
+
+----------
+
+## Supported Devices
+
+- **Global requirement:** To work with the SDK, the device/browser must support WASM/WebAssembly.
+
+- **Android:** All devices supported. Depending on device capabilities, users might be directed to 'Live Capture', 'Tap to Capture' or 'Manual Capture'.
+
+- **iOS devices still supported by Apple:** All devices supported. Depending on device capabilities, users might be directed to 'Live Capture', 'Tap to Capture' or 'Manual Capture'.
+
+- **iOS devices no longer supported by Apple:** Not officially supported. Our testing shows that running only the image worker succeeds, but running the metrics worker can fail on those devices. Users are directed to 'Manual Capture'.
 
 
 ----------
@@ -56,7 +69,7 @@ The SDK includes the following modules:
 - WASM-based Web Worker used to run Cropping and Document Detection
 - Used by **Acuant Camera** or by the Implementer via **Acuant JavaScript SDK**
 
-**Acuant Metrics Worker (AcuantMetricsWorker.js, AcuantMetricsService.js, AcuantMetricsService.js.mem):**
+**Acuant Metrics Worker (AcuantMetricsWorker.js, AcuantMetricsService.js, AcuantMetricsService.wasm):**
 
 - Web Worker used to run image quality metrics like sharpness and glare
 - Used by **Acuant Image Worker** after cropping or by the Implementer via **Acuant JavaScript SDK**
@@ -78,7 +91,7 @@ The SDK includes the following modules:
 	- **AcuantImageService.wasm**
 	- **AcuantMetricsWorker.min.js**
 	- **AcuantMetricsService.js**
-	- **AcuantMetricsService.js.mem**
+	- **AcuantMetricsService.wasm**
 	
 
 1. Load the main script files, excluding ones that will not be used:
@@ -100,6 +113,10 @@ The SDK includes the following modules:
 		var onAcuantSdkLoaded = function(){
 			//sdk has been loaded;
 		}
+		
+**Note:** The SDK loads using a listener for DOMContentLoaded. If the scripts will be added to the page in a way that the listener won't be called (for example, in a single-page react application), once the SDK scripts are loaded in the page, manually call the following function:
+
+		loadAcuantSdk();
 
 1. Optionally, define a method as a callback for unexpected errors in situations where one of the other error callbacks could not be called. This callback should rarely, if ever, be called. If the callback is getting called, review the implementation as it more often than not indicates a flaw in the implementation.
 
@@ -276,7 +293,7 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 		codes = [
 			AcuantJavascriptWebSdk.START_FAIL_CODE, //This means the camera failed to start either because it is not supported or because the user declined permission.
 			AcuantJavascriptWebSdk.REPEAT_FAIL_CODE, //This means Live Capture was called after an error with Live Capture already occurred. Important: When this happens, the user is directed to Manual Capture. Use this error callback to set up your display as you would for a user in Manual Capture.
-			AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE //This can happen on iOS 15 due to a GPU Highwater failure. See known issues for more information.
+			AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE //This means live capture froze/crashed. Usually occurs in iOS 15 due to a GPU Highwater failure. See known issues for more information.
 		]
 		
 	**Note**: For all full captures, in the event of an error, direct the user to manual capture (detailed in the next section).
@@ -577,7 +594,7 @@ Web Workers/WASM and CDNs can be used together with workarounds. The following c
 		
 		="AcuantInitializerService.wasm" in AcuantInitializerService.min.js
 		="AcuantImageService.wasm" in AcuantImageService.min.js
-		="AcuantMetricsService.js.mem" in AcuantMetricsService.min.js
+		="AcuantMetricsService.wasm" in AcuantMetricsService.min.js
 		
 		importScripts("AcuantInitializerService.min.js") in AcuantInitializerWorker.min.js
 		importScripts("AcuantImageService.min.js") in AcuantImageWorker.min.js
@@ -598,15 +615,19 @@ Starting and stopping Workers is a very slow operation, so you will see performa
 
 ----------
 
-## Known Issues
+## Known Issues/FAQ
 
 1. iOS 15 has multiple issues that manifest themselves as GPU Highwater failures (ie system daemon used too much memory).
 
-	We have done what we can to delay/prevent the occurrence of the issues and will continue monitoring/investigating further improvements. However, at this moment we believe the root cause to be on Apple's/Safari's side. The issue is more prevalent on older iOS 15 devices and is less likely to occur on newer devices. Currently, the issue should be detected successfully by the camera and reported to the implementer as a code: AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE. The GPU failure will render the live capture unusable, forcing users to go to Manual Capture as an alternative.
+	We have done what we can to delay/prevent the occurrence of the issues and will continue monitoring/investigating further improvements. However, at this moment we believe the root cause to be on Apple's/Safari's side. The issue is more prevalent on older iOS 15 devices and is less likely to occur on newer devices. Currently, the issue should be detected successfully by the camera and reported to the implementer as a code: AcuantJavascriptWebSdk.SEQUENCE\_BREAK\_CODE. The GPU failure will render the live capture unusable, forcing users to go to Manual Capture as an alternative.
 
 1. The camera preview has a low/throttled frame rate (as low as 10-15fps).
 
 	The frame rate is intentionally throttled because higher frame rates on iOS 15 can be unstable. For consistency, the frame rate is throttled on all devices. In our experience, the throttled frame rate is high enough to successfully perform Live Capture. We will continue to monitor this issue and will remove the throttle once we believe higher frame rates no longer cause instability.
+
+1. Camera previews on iOS 15.0 and 15.1 can appear rotated
+
+    This issue occurs intermittently. Although the device is set to portrait, the preview can appear rotated as though the device is set to landscape. This is an iOS bug and our testing indicated it has been fixed in the iOS 15.2 beta.
 		
 1. Nothing happens when the page/scripts load.
 
@@ -615,6 +636,10 @@ Starting and stopping Workers is a very slow operation, so you will see performa
 1. After encountering an error, further calls to Live Capture go to Manual Capture.
 
 	This behavior is intended, and is not an issue. This behavior has been the intended workflow since release.
+	
+1. The following "wasm streaming compile failed: TypeError: Failed[...]" is printed in console.
+
+	You can ignore these warnings. If you want to prevent the warnings, set the file type for the .wasm files to application/wasm in your server/cdn configuration.
 
 1. When using Passive Liveness camera on Google Chrome for Android, the camera defaults to the back-facing instead of the front-facing camera. 
 

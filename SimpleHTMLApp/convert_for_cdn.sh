@@ -36,7 +36,7 @@ echo $URL
 
 sed -i.backup 's|="AcuantInitializerService.wasm"|="'"${URL}"'AcuantInitializerService.wasm"|g' "$FILE/AcuantInitializerService.min.js"
 sed -i.backup 's|="AcuantImageService.wasm"|="'"${URL}"'AcuantImageService.wasm"|g' "$FILE/AcuantImageService.min.js"
-sed -i.backup 's|="AcuantMetricsService.js.mem"|="'"${URL}"'AcuantMetricsService.js.mem"|g' "$FILE/AcuantMetricsService.min.js"
+sed -i.backup 's|="AcuantMetricsService.wasm"|="'"${URL}"'AcuantMetricsService.wasm"|g' "$FILE/AcuantMetricsService.min.js"
 
 sed -i.backup 's|importScripts("AcuantInitializerService.min.js")|importScripts("'"${URL}"'AcuantInitializerService.min.js")|g' "$FILE/AcuantInitializerWorker.min.js"
 sed -i.backup 's|importScripts("AcuantImageService.min.js")|importScripts("'"${URL}"'AcuantImageService.min.js")|g' "$FILE/AcuantImageWorker.min.js"

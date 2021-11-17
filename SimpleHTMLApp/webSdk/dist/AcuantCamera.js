@@ -479,7 +479,9 @@ var AcuantCamera = (function () {
     let hiddenCanvas = null;
     let hiddenContext = null;
 
-    const SEQUENCE_BREAK = "Camera capture failed due to unexpected sequence break. This can currently be caused intermitently by a bug in ios 15+ related to GPU Highwater errors. Swap to manual capture until the user fully reloads the browser. Attempting to continue to use live capture can cause greater issues.";
+    const SEQUENCE_BREAK_IOS_15 = "Camera capture failed due to unexpected sequence break. This usually indicates the camera closed or froze unexpectedly. In iOS 15+ this is intermittently occurs due to a GPU Highwater failure. Swap to manual capture until the user fully reloads the browser. Attempting to continue to use live capture can lead to further Highwater errors and can cause to OS to cut off the webpage.";
+
+    const SEQUENCE_BREAK_OTHER = "Camera capture failed due to unexpected sequence break. This usually indicates the camera closed or froze unexpectedly. Swap to manual capture until the user fully reloads the browser.";
 
     const DOCUMENT_STATE = {
         NO_DOCUMENT: 0,
@@ -886,6 +888,7 @@ var AcuantCamera = (function () {
         isStarted = false;
         isDetecting = false;
         captureOrientation = -1;
+        imgDataPrevious = undefined;
         if (detectTimeout) {
             clearTimeout(detectTimeout);
             detectTimeout = null;
@@ -916,8 +919,12 @@ var AcuantCamera = (function () {
     function iOSversion() {
         if (/iP(hone|od|ad)/.test(navigator.platform)) {
             // supports iOS 2.0 and later: <http://bit.ly/TJjs1V>
-            var v = (navigator.appVersion).match(/OS (\d+)_(\d+)_?(\d+)?/);
-            return [parseInt(v[1], 10), parseInt(v[2], 10), parseInt(v[3] || 0, 10)];
+            try {
+                const v = (navigator.appVersion).match(/OS (\d+)_(\d+)_?(\d+)?/);
+                return [parseInt(v[1], 10), parseInt(v[2], 10), parseInt(v[3] || 0, 10)];
+            } catch (_) {
+                return -1;
+            }
         }
         return -1;
     }
@@ -925,6 +932,15 @@ var AcuantCamera = (function () {
     function isiOS144Plus() {
         let ver = iOSversion();
         return ver && ver != -1 && ver.length >= 2 && ver[0] == 14 && ver[1] >= 4//TODO review this is it still applicable, should it apply to ios15+
+    }
+
+    function isiOS15Plus() {
+        let ver = iOSversion();
+        return ver && ver != -1 && ver.length >= 1 && ver[0] == 15;
+    }
+
+    function isiPad13Plus() {
+        return navigator.maxTouchPoints && navigator.maxTouchPoints >= 2 && /MacIntel/.test(navigator.platform);
     }
 
     function onResize() {
@@ -1046,7 +1062,7 @@ var AcuantCamera = (function () {
                 return;
             }
 
-            if (isIOS()) {
+            if (isiOS15Plus() || isiPad13Plus()) {
                 //this is part of the mitigation of the ios 15 issue. When the camera fails it will either set video width to 0 (caught above), return a blank image (caught by this), or return the last successful frame over and over (caught by this).
                 if (imgDataPrevious && arraysEqualish(imgDataPrevious.data, imgData.data)) {
                     sequenceBreak();
@@ -1060,24 +1076,19 @@ var AcuantCamera = (function () {
     }
 
     //Only check the first 25000 bytes for speed purposes under the assumption that camera jitter and small fluctuations in input will always lead to 
-    // at least one in 25000 bytes to change. So far I have not seen thi return a false positive.
+    // at least one in 25000 bytes to change. So far I have not seen this return a false positive.
     function arraysEqualish(a, b) {
         if (a === b) return true;
         if (a == null || b == null) return false;
         if (a.length !== b.length) return false;
-      
-        // If you don't care about the order of the elements inside
-        // the array, you should sort both arrays here.
-        // Please note that calling sort on an array will modify that array.
-        // you might want to clone your array first.
 
         let len = a.length > 25000 ? 25000 : a.length;
       
         for (var i = 0; i < len; ++i) {
-          if (a[i] !== b[i]) return false;
+            if (a[i] !== b[i]) return false;
         }
         return true;
-      }
+    }
 
     function detect(imgData, width, height) {
         AcuantJavascriptWebSdk.detect(imgData, width, height, {
@@ -1138,7 +1149,7 @@ var AcuantCamera = (function () {
                 if (waitingOnTheOther) {
                     waitingOnTheOther = false;
                 } else {
-                    finishCrop(result, width, height, capType, callback);
+                    finishCrop(result, capType, callback);
                 }
             },
 
@@ -1149,7 +1160,7 @@ var AcuantCamera = (function () {
                 if (waitingOnTheOther) {
                     waitingOnTheOther = false;
                 } else {
-                    finishCrop(result, width, height, capType, callback);
+                    finishCrop(result, capType, callback);
                 }
             }
         });
@@ -1163,7 +1174,7 @@ var AcuantCamera = (function () {
                 if (waitingOnTheOther) {
                     waitingOnTheOther = false;
                 } else {
-                    finishCrop(result, width, height, capType, callback);
+                    finishCrop(result, capType, callback);
                 }
             },
 
@@ -1173,9 +1184,9 @@ var AcuantCamera = (function () {
         });
     }
 
-    function finishCrop(result, width, height, capType, callback) {
+    function finishCrop(result, capType, callback) {
 
-        AcuantJavascriptWebSdk.metrics(result.image, width, height, {
+        AcuantJavascriptWebSdk.metrics(result.image, result.image.width, result.image.height, {
             onSuccess: function (sharpness, glare) {
 
                 result.sharpness = sharpness;
@@ -1322,11 +1333,11 @@ var AcuantCamera = (function () {
     }
 
     function sequenceBreak() {
-        imgDataPrevious = undefined;
-        if (onErrorCallback) {
-            callCameraError(SEQUENCE_BREAK, AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE);
+        if (isiOS15Plus() || isiPad13Plus()) {
+            callCameraError(SEQUENCE_BREAK_IOS_15, AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE);
+        } else {
+            callCameraError(SEQUENCE_BREAK_OTHER, AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE);
         }
-        endCamera();
     }
 
     return svc;

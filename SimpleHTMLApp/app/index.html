@@ -138,6 +138,7 @@
   <div id="result-id" style="display:none">
     <div class="row text-center">
       <div class="col-md-12">
+        <p id="result-error" style="display:none">An error has occurred while cropping the image. Please try again.</p>
         <canvas id="result-id-img" class="fit-screen" style="display:block"></canvas>
       </div>
     </div>
@@ -190,6 +191,7 @@
   const resultFace = document.getElementById('result-face');
 
   const resultId = document.getElementById('result-id-img');
+  const resultError = document.getElementById('result-error');
 
   const sharpnessInput = document.getElementById('sharpness');
   const glareInput = document.getElementById('glare');
@@ -296,8 +298,8 @@
     } else {
       modal.style.display = "block";
       switch(code) {
-        case AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE: //ios 15 bug
-          modalText.innerHTML = "Camera failed due to ios 15 bug. Start manual capture.";
+        case AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE: //camera froze/crashed; usually happens due to an ios 15 bug
+          modalText.innerHTML = "Live Camera failed. Start manual capture.";
           break;
         case AcuantJavascriptWebSdk.START_FAIL_CODE: //camera not supported or permission not granted
           modalText.innerHTML = "Live Camera failed to open. Start manual capture.";
@@ -316,8 +318,13 @@
   }
 
   function onCropped(response) {
-    if (response) {
+    resultId.style.display = "block";
+    resultError.style.display = "none";
+    if (response && response.image) {
       drawImageOnResult(response);
+    } else {
+      resultId.style.display = "none";
+      resultError.style.display = "block";
     }
     closeCamera();
     loader.style.display = "none";
@@ -332,22 +339,20 @@
   }
 
   function drawImageOnResult(result) {
-    if (result && result.image) {
-      currentResult = result.image.data;
+    currentResult = result.image.data;
 
-      resultId.width = result.image.width;
-      resultId.height = result.image.height;
+    resultId.width = result.image.width;
+    resultId.height = result.image.height;
 
-      const imgContext = resultId.getContext('2d');
-      const imgBuffer = imgContext.createImageData(result.image.width, result.image.height);
-      imgBuffer.data.set(result.image.bytes, 0);
+    const imgContext = resultId.getContext('2d');
+    const imgBuffer = imgContext.createImageData(result.image.width, result.image.height);
+    imgBuffer.data.set(result.image.bytes, 0);
 
-      imgContext.putImageData(imgBuffer, 0, 0);
+    imgContext.putImageData(imgBuffer, 0, 0);
 
-      sharpnessInput.value = result.sharpness;
-      glareInput.value = result.glare;
-      dpiInput.value = result.dpi;
-    }
+    sharpnessInput.value = result.sharpness;
+    glareInput.value = result.glare;
+    dpiInput.value = result.dpi;
   }
 
   function saveImage() {
@@ -363,15 +368,24 @@
   //this is an example of how to detect an older ios device.
   //depending on your enviroment you might be able to get more specific.
   function isOldiOS() {
-    let keyPhrase = "iPhone OS";
     let ua = navigator.userAgent;
+    let keyPhrase = "iPhone OS";
+    const keyPhrase2 = "iPad; CPU OS";
     let index = ua.indexOf(keyPhrase);
-    if (index > 0) {
+    if (index < 0) {
+      keyPhrase = keyPhrase2;
+      index = ua.indexOf(keyPhrase);
+    }
+    if (index >= 0) {
       let version = ua.substring(index + keyPhrase.length + 1, index + keyPhrase.length + 3);
-      let versionNum = parseInt(version);
-      if (versionNum && versionNum < 13) {
-        return true;
-      } else {
+      try {
+        let versionNum = parseInt(version);
+        if (versionNum && versionNum < 13) {
+          return true;
+        } else {
+          return false;
+        }
+      } catch (_) {
         return false;
       }
     } else {
