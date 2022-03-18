@@ -3,8 +3,8 @@
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+
   <style>
     .loader {
       border: 5vw solid #f3f3f3;
@@ -85,6 +85,21 @@
       text-decoration: none;
       cursor: pointer;
     }
+    .detection-state {
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      z-index: 100;
+      font-size: x-large;
+      margin-top: 50;
+    }
+
+    .face-camera-container {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+    
 
     .fit-screen {
       max-width: 100%;
@@ -108,9 +123,12 @@
   </div>
   <div id="camera-btn" class="row text-center" style="display:none; margin:10% 0 10% 0">
     <div class="col-md-6 btn-group">
-      <button class="btn btn-success mr-2" onClick="openFrontCamera()">Passive Liveness</button>
+      <button class="btn btn-success mr-2" onClick="openFaceCaptureCamera()">Passive Liveness</button>
       <button class="btn btn-success mr-2" onClick="openCamera()">Open Camera</button>
     </div>
+  </div>
+  <div id="acuant-face-capture-container" class="face-camera-container">
+    <div id="face-detection-text" class="detection-state"></div>
   </div>
   <div class="row">
     <div class="col-md-12 text-center">
@@ -188,6 +206,8 @@
   const desc = document.getElementById('desc');
   const result = document.getElementById('result-id');
 
+  const faceCaptureContainer  = document.getElementById('acuant-face-capture-container');
+  const faceDetectionTextDiv = document.getElementById('face-detection-text');
   const resultFace = document.getElementById('result-face');
 
   const resultId = document.getElementById('result-id-img');
@@ -405,16 +425,32 @@
     el.value = value;
   }
 
-  function openFrontCamera() {
-    AcuantPassiveLiveness.startSelfieCapture((image) => {
-      cameraBtn.style.display = "none";
+  const faceDetectionState = {
+    FACE_NOT_FOUND: "FACE NOT FOUND",
+    TOO_MANY_FACES: "TOO MANY FACES",
+    FACE_ANGLE_TOO_LARGE: "FACE ANGLE TOO LARGE",
+    PROBABILITY_TOO_SMALL: "PROBABILITY TOO SMALL",
+    FACE_TOO_SMALL: "FACE TOO SMALL",
+    FACE_CLOSE_TO_BORDER: "TOO CLOSE TO THE FRAME"
+  }
+
+  const openFaceCaptureCamera = () => {
+    resultFace.style.display = "none";
+    cameraBtn.style.display = "none";
+    result.style.display = 'none';
+    desc.style.display = 'none';
+    faceDetectionTextDiv.innerHTML = "";
+    faceCaptureContainer.style.display = 'block';
+
+    const onFaceCaptured = (image) => {
       loader.style.display = "block";
-      AcuantPassiveLiveness.postLiveness({
+      faceCaptureContainer.style.display = 'none';
+      AcuantPassiveLiveness.getLiveness({
         endpoint: Credential.liveness_endpoint,
         token: btoa(Credential.passive_username + ':' + Credential.passive_password),
         image: image,
         subscriptionId: Credential.passive_subscriptionId
-      }, function (result) {
+      }, (result) => {
         cameraBtn.style.display = "block";
         if (result) {
           if (result.LivenessResult) {
@@ -432,7 +468,36 @@
         resultFace.style.display = "block";
         loader.style.display = "none";
       })
-    });
+    }
+
+    var handler = {
+      onDetection: (text) => {
+        faceDetectionTextDiv.innerHTML = text;
+      },
+      onOpened: () => {
+        faceDetectionTextDiv.style.display = 'flex';
+      },
+      onClosed: () => {
+        faceDetectionTextDiv.style.display = 'none';
+        cameraBtn.style.display = 'block';
+      },
+      onError: (error) => {
+        if (error.code == 1) { //camera permission not granted
+          faceDetectionTextDiv.style.display = 'none';
+          cameraBtn.style.display = 'block';
+        }
+        console.log(error.message)
+      },
+      onPhotoTaken: () => {
+        faceDetectionTextDiv.style.display = 'none';
+      },
+      onPhotoRetake: () => {
+        faceDetectionTextDiv.style.display = 'flex';
+      },
+      onCaptured: onFaceCaptured
+    }
+
+    AcuantPassiveLiveness.start(handler, faceDetectionState);
   }
 
   //**************** Passive Liveness==========================
@@ -466,9 +531,10 @@
     jpegQuality: 1.0 //strongly advised not to modify (can be left out will default to 1.0)
   }
 </script>
-<script src="/app/Credential.js"></script>
+
 <script src="/webSdk/dist/AcuantJavascriptWebSdk.min.js" charset="utf-8"></script>
 <script async src="/webSdk/dist/AcuantCamera.min.js" charset="utf-8"></script>
 <script async src="/webSdk/dist/AcuantPassiveLiveness.min.js" charset="utf-8"></script>
+<script async src="/webSdk/dist/opencv.min.js" charset="utf-8"></script>
 
 </html>

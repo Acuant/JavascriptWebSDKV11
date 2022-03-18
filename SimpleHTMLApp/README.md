@@ -1,6 +1,6 @@
-# Acuant JavaScript Web SDK v11.5.1
+# Acuant JavaScript Web SDK v11.6.0
 
-**November 2021**
+**March 2022**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -83,6 +83,11 @@ The SDK includes the following modules:
 	- **AcuantJavaScriptSdk.min.js**
 	- **AcuantCamera.min.js**
 	- **AcuantPassiveLiveness.min.js**
+		- **opencv.min.js**
+		- **face_landmark_68_tiny_model-weights_manifest.json**
+		- **face_landmark_68_tiny_model.bin**
+		- **tiny_face_detector_model-shard1**
+		- **tiny_face_detector_model-weights_manifest.json**
 	- **AcuantInitializerWorker.min.js**
 	- **AcuantInitializerServicejs**
 	- **AcuantInitializerService.wasm**
@@ -92,14 +97,15 @@ The SDK includes the following modules:
 	- **AcuantMetricsWorker.min.js**
 	- **AcuantMetricsService.js**
 	- **AcuantMetricsService.wasm**
-	
 
 1. Load the main script files, excluding ones that will not be used:
 	
 		<script src="AcuantJavascriptWebSdk.min.js"></script>
 		<script async src="AcuantCamera.min.js"></script>
 		<script async src="AcuantPassiveLiveness.min.js"></script>
+		<script async src="opencv.min.js" charset="utf-8"></script>
 		
+	**Note:** OpenCV is only needed for AcuantPassiveLiveness module.
 
 1. Define a custom path to load files (if different than root):
 
@@ -114,7 +120,7 @@ The SDK includes the following modules:
 			//sdk has been loaded;
 		}
 		
-**Note:** The SDK loads using a listener for DOMContentLoaded. If the scripts will be added to the page in a way that the listener won't be called (for example, in a single-page react application), once the SDK scripts are loaded in the page, manually call the following function:
+	**Note:** The SDK loads using a listener for DOMContentLoaded. If the scripts will be added to the page in a way that the listener won't be called (for example, in a single-page react application), once the SDK scripts are loaded in the page, manually call the following function:
 
 		loadAcuantSdk();
 
@@ -230,7 +236,7 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 
 1. Add a viewport meta tag (if not already present) to prevent the video/ui from rendering at a much higher resolution than it needs to:
 
-		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 
 1. Add HTML to show the live capture preview:
 		
@@ -248,15 +254,15 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 			}
 		};
 	
-1. Set up callback to retrieve the image at each state of the camera. For more information on the processed image returned via **onCropped**, see [Image from AcuantCameraUI and AcuantCamera](#image-from-acuantcameraui-and-acuantcamera).
+1. Set up callback to retrieve the image at each state of the camera. Be aware that cropping the image can fail and cause the **onCropped response to be undefined**. For more information on the processed image returned via **onCropped**, see [Image from AcuantCameraUI and AcuantCamera](#image-from-acuantcameraui-and-acuantcamera).
 	
 		var cameraCallback = {
-			onCaptured: function(response){
+			onCaptured: function(response) {
 				//document captured
 				//this is not the final result of processed image
 				//show a loading screen until onCropped is called
 			},
-			onCropped: function(response){
+			onCropped: function(response) {
 				if (response) {
 					//use response
 				} else {
@@ -264,7 +270,7 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 					//restart capture
 				}
 			},
-			onFrameAvailable: function(response){
+			onFrameAvailable: function(response) {
 				//this is optional
 				//Use only if you plan to display custom UI elements in addition to what is already displayed by the camera.
 				response = {
@@ -319,20 +325,19 @@ If you are not using AcuantCamerUI, and you want to use your own live capture UI
 
 **Note:** Launching Live Capture after a Live Capture error directs users to Manual Capture. For best practice, do not rely on this behavior, and send users to Manual Capture from within your implementation.
 	
-1. Start manual capture. For more information on the processed image returned via **onCropped**, see [Image from AcuantCameraUI and AcuantCamera](#image-from-acuantcameraui-and-acuantcamera). 
+1. Start manual capture. Be aware that cropping the image can fail and cause the **onCropped response to be undefined**. For more information on the processed image returned via **onCropped**, see [Image from AcuantCameraUI and AcuantCamera](#image-from-acuantcameraui-and-acuantcamera).
 		
         AcuantCamera.startManualCapture({
-            onCaptured: function(response){
+            onCaptured: function(response) {
                 //this will be called after user finishes capture
                 //then proceeds to crop
                 //onCropped will be called after finished
             },
-            onCropped: function(response){
-                if(response){
+            onCropped: function(response) {
+                if (response) {
                     //cropped response;
                     
-                }
-                else{
+                } else {
                     //Error occurred during cropping; retry capture
                 }
             }
@@ -461,7 +466,7 @@ This information is for processing images manually if they are not captured thro
 
 **Prerequisite:** To use the face capture and FaceID API, credentials with FaceID must be enabled. 
 
-Acuant recommends using the **LiveAssessment** property rather than the score) to evaluate response. **AcuantPassiveLiveness.startSelfieCapture** will return a rescaled image.
+Acuant recommends using the **LiveAssessment** property rather than the score) to evaluate response. **AcuantPassiveLiveness.start** will return a rescaled image in onCaptured callback. The module supports real-time face detection only Android.
 
 Follow these recommendations to effectively process an image for passive liveness:
 #### Image requirements
@@ -484,52 +489,108 @@ The following may significantly increase errors or false results:
 - A spotlight on the face and nearest surroundings
 - An environment with poor lighting or colored light
 
-**Note**: Face live capture and guidance is not supported, only manual capture is available. Also, the use of fish-eye lenses is not supported by this API.
+**Note**: On iOS, real-time face detection is not supported, only manual capture is available. Also, the use of fish-eye lenses is not supported by this API.
 
 ### Start face capture and send Passive Liveness request
 
-**Important:** Do not use this function for face capture if you are not using the Acuant FaceID API.
+**Important:** Do not use this module for face capture if you are not using the Acuant FaceID API.
 
-1. Start face capture with device's camera app.
+1. Add an HTML element to show face capture preview:
 
-		AcuantPassiveLiveness.startSelfieCapture(callback:function(base64img){
-			//called with result
-		})
-		
-1. Upload face image and send request for Passive Liveness result.
+	```
+	<div id="acuant-face-capture-container"></div>
+	```
 
-		AcuantPassiveLiveness.postLiveness({
-			endpoint: "ACUANT_PASSIVE_LIVENESS_ENDPOINT",
-			token: "ACUANT_PASSIVE_LIVENESS_TOKEN",
-			subscriptionId: "ACUANT_PASSIVE_LIVENESS_SUBSCRIPTIONID",
-			image: base64img
-		}, function(result){
-			result = {
-				LivenessResult = {
-					LivenessAssessment : String = 
-						//POSSIBLE VALUES
-						"Live", 
-						"NotLive",
-						"PoorQuality", 
-						"Error";
-					Score: 0
-				},
-				Error: "",//error description
-				ErrorCode: String = 
+1. Optionally, create custom detection texts:
+
+	```
+	const faceDetectionStates = {
+		FACE_NOT_FOUND: "FACE NOT FOUND",
+		TOO_MANY_FACES: "TOO MANY FACES",
+		FACE_ANGLE_TOO_LARGE: "FACE ANGLE TOO LARGE",
+		PROBABILITY_TOO_SMALL: "PROBABILITY TOO SMALL",
+		FACE_TOO_SMALL: "FACE TOO SMALL",
+		FACE_CLOSE_TO_BORDER: "TOO CLOSE TO THE FRAME"
+	}
+	```
+
+	**Note:** The module does not provide the text UI element.
+
+1. Set up callback:
+
+	```
+	var faceCaptureCallback = {
+		onDetection: (text) => {
+			//Triggered when the face does not pass the scan. The UI element
+			//should be updated here to provide guidence to the user
+		},
+		onOpened: () => {
+			//Camera has opened
+		},
+		onClosed: () => {
+			//Camera has closed
+		},
+		onError: (error) => {
+			//Error occurred. Camera permission not granted will
+			//manifest here with 1 as error code. Unexpected errors will have 2 as error code.
+		},
+		onPhotoTaken: () => {
+			//The photo has been taken and it's showing a preview with a button to accept or retake the image.
+		},
+		onPhotoRetake: () => {
+			//Triggered when retake button is tapped
+		},
+		onCaptured: (base64Image) => {
+			//Triggered when accept button is tapped
+		}
+	}
+	```
+	**Note:** On iOS only onCaptured will be called.
+
+1. Start face capture:
+
+	```
+	AcuantPassiveLiveness.start(faceCaptureCallback, faceDetectionStates);
+	```
+
+	**Note:** On iOS calling ```AcuantPassiveLiveness.start``` will launch the native camera. Alternatively, the module exposes ```startManualCapture``` method that launches the native camera and returns the image taken in base64.
+
+1. Upload face image and send request for Passive Liveness result:
+
+	```
+	AcuantPassiveLiveness.getLiveness({
+		endpoint: "ACUANT_PASSIVE_LIVENESS_ENDPOINT",
+		token: "ACUANT_PASSIVE_LIVENESS_TOKEN",
+		subscriptionId: "ACUANT_PASSIVE_LIVENESS_SUBSCRIPTIONID",
+		image: base64img
+	}, (result) => {
+		result = {
+			LivenessResult = {
+				LivenessAssessment : String =
+					LivenessAssessment : String =
+				LivenessAssessment : String =
 					//POSSIBLE VALUES
-					"Unknown", 
-					"FaceTooClose", 
-					"FaceNotFound", 
-					"FaceTooSmall", 
-					"FaceAngleTooLarge", 
-					"FailedToReadImage", 
-					"InvalidRequest", 
-					"InvalidRequestSettings",
-					"Unauthorized", 
-					"NotFound"
-			}
-		})
-
+					"Live",
+					"NotLive",
+					"PoorQuality",
+					"Error";
+				Score: 0
+			},
+			Error: "",//error description
+			ErrorCode: String =
+				//POSSIBLE VALUES
+				"Unknown",
+				"FaceTooClose",
+				"FaceNotFound",
+				"FaceTooSmall",
+				"FailedToReadImage",
+				"InvalidRequest",
+				"InvalidRequestSettings",
+				"Unauthorized",
+				"NotFound"
+		}
+	})
+	```
 
 ----------
 

@@ -1,21 +1,141 @@
 # Migration Details JavaScript Web SDK
 
-**v11.5.0**
+## v11.6.0
+
+### AcuantCameraUI
+
+Add ```maximum-scale=1,user-scalable=no``` to the viewport meta tag. This parameter ensures that the screen resizes correctly upon device rotation.
+Your viewport meta tag should look like this: 
+
+```
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+```
+
+### Passive Liveness
+
+Because real-time face detection is supported on Android, you have to update your implementation as follows:
+
+1. In addition to ```AcuantPassiveLiveness.min.js```, include the following SDK files::
+
+	- **opencv.min.js**
+	- **face_landmark_68_tiny_model-weights_manifest.json**
+	- **face_landmark_68_tiny_model.bin**
+	- **tiny_face_detector_model-shard1**
+	- **tiny_face_detector_model-weights_manifest.json**
+
+1. Add ```opencv.min.js``` to your imports.
+
+	```
+	<script src="AcuantJavascriptWebSdk.min.js"></script>
+	<script async src="AcuantPassiveLiveness.min.js"></script>
+	<script async src="opencv.min.js" charset="utf-8"></script>
+	```
+
+1. Add an HTML element to show a face capture preview.
+
+	```
+	<div id="acuant-face-capture-container"></div>
+	```
+
+1. Optionally, create custom detection texts.
+
+	```
+	const faceDetectionStates = {
+		FACE_NOT_FOUND: "FACE NOT FOUND",
+	 	TOO_MANY_FACES: "TOO MANY FACES",
+	 	FACE_ANGLE_TOO_LARGE: "FACE ANGLE TOO LARGE",
+	 	PROBABILITY_TOO_SMALL: "PROBABILITY TOO SMALL",
+	 	FACE_TOO_SMALL: "FACE TOO SMALL",
+	 	FACE_CLOSE_TO_BORDER: "TOO CLOSE TO THE FRAME"
+	}
+	```
+
+	**Note:** The module does not provide the text UI element.
+
+1. Setup callback:
+
+	```
+	var faceCaptureCallback = {
+		onDetection: (text) => {
+			//Triggered when the face does not pass the scan. The UI element
+			//should be updated here to provide guidence to the user
+		},
+		onOpened: () => {
+			//Camera has opened
+		},
+		onClosed: () => {
+			//Camera has closed
+		},
+		onError: (error) => {
+			//Error occurred. Camera permission not granted will 
+			//manifest here with 1 as error code. Unexpected errors will have 2 as error code.
+		},
+		onPhotoTaken: () => {
+			//The photo has been taken and it's showing a preview with a button to accept or retake the image
+		},
+		onPhotoRetake: () => {
+			//Triggered when retake button is tapped
+		},
+		onCaptured: (base64Image) => {
+			//Triggered when accept button is tapped
+		}
+	}
+	```
+
+	**Note:** On iOS only onCaptured will be called
+
+1. Update how the camera is started:
+
+	Replace:
+	```
+	AcuantPassiveLiveness.startSelfieCapture((image) => { })
+	```
+	With:
+	```
+	AcuantPassiveLiveness.start(faceCaptureCallback, faceDetectionStates);
+	```
+
+	**Note:** Upon iOS calling, ```AcuantPassiveLiveness.start``` launches the native camera. Alternatively, the module exposes ```startManualCapture``` method that launches the native camera and returns the image taken in base64.
+
+1. Update how you get Passive Liveness result:
+
+	Replace:
+	```
+	AcuantPassiveLiveness.postLiveness({
+		endpoint: "ACUANT_PASSIVE_LIVENESS_ENDPOINT",
+		token: "ACUANT_PASSIVE_LIVENESS_TOKEN",
+		subscriptionId: "ACUANT_PASSIVE_LIVENESS_SUBSCRIPTIONID",
+		image: base64img
+	}, (result) => { })
+	```
+	With:
+	```
+	AcuantPassiveLiveness.getLiveness({
+		endpoint: "ACUANT_PASSIVE_LIVENESS_ENDPOINT",
+		token: "ACUANT_PASSIVE_LIVENESS_TOKEN",
+		subscriptionId: "ACUANT_PASSIVE_LIVENESS_SUBSCRIPTIONID",
+		image: base64img
+	}, (result) => { })
+	```
+
+----------
+
+## v11.5.0
 
 Delete all old sdk files then copy in the new ones:
 
-	- **AcuantJavaScriptSdk.min.js**
-	- **AcuantCamera.min.js**
-	- **AcuantPassiveLiveness.min.js**
-	- **AcuantInitializerWorker.min.js**
-	- **AcuantInitializerServicejs**
-	- **AcuantInitializerService.wasm**
-	- **AcuantImageWorker.min.js**
-	- **AcuantImageService.js**
-	- **AcuantImageService.wasm**
-	- **AcuantMetricsWorker.min.js**
-	- **AcuantMetricsService.js**
-	- **AcuantMetricsService.js.mem**
+- **AcuantJavaScriptSdk.min.js**
+- **AcuantCamera.min.js**
+- **AcuantPassiveLiveness.min.js**
+- **AcuantInitializerWorker.min.js**
+- **AcuantInitializerServicejs**
+- **AcuantInitializerService.wasm**
+- **AcuantImageWorker.min.js**
+- **AcuantImageService.js**
+- **AcuantImageService.wasm**
+- **AcuantMetricsWorker.min.js**
+- **AcuantMetricsService.js**
+- **AcuantMetricsService.js.mem**
 
 Replace your imports with the following:
 
@@ -59,23 +179,25 @@ If you are using an implementation that loads the SDK at a later point (for exam
 
 ----------
 
-**v11.4.2**
+## v11.4.2
 
-## ACAS endpoint now required for initialization.
+### ACAS endpoint now required for initialization.
 
 - Replace the old `id_endpoint` with the new `acas_endpoint` in the initialize method. For more information, see [here](https://github.com/Acuant/JavascriptWebSDKV11/blob/master/#initialize-and-start-web-worker).
 
 
 ----------
 
-**v11.4.0**
+## v11.4.0
 
-## Updated Supported Browsers for Live Capture
+### Updated Supported Browsers for Live Capture
+
 - Live capture will not be supported on Firefox at this time.
 - If the device is running earlier than iOS 13.0, then Live Capture will not be supported.
 
 
-## Updated AcuantCameraUI
+### Updated AcuantCameraUI
+
 **This release of the AcuantCamera API includes significant improvements. You may need to modify your implementation.**
 
 1.) AcuantCameraUI no longer starts manual capture. We recommend adding a check for AcuantCamera.isCameraSupported before starting AcuantCameraUI.start(). Example shown below
@@ -127,7 +249,7 @@ If you are using an implementation that loads the SDK at a later point (for exam
 
     
 
-## Updated Live Capture WebRTC constraints
+### Updated Live Capture WebRTC constraints
 - AcuantCamera uses new constraints to start live capture in mediaDevices. If these constraints are not satisfied, you will have to handle the error callback. Acuant recommends starting manual capture if this error occurs. 
 - **IMPORTANT**: AcuantCamera manual capture uses \<input type="file"/> html tags to access the native camera. This REQUIRES a user initiated event to start the camera.
 		
