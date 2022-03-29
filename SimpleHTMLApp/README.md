@@ -1,4 +1,4 @@
-# Acuant JavaScript Web SDK v11.6.0
+# Acuant JavaScript Web SDK v11.6.1
 
 **March 2022**
 

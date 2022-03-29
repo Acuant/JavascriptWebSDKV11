@@ -782,8 +782,8 @@ var AcuantCamera = (function () {
             onErrorCallback = errorCallback;
         }
 
-        if (cameraHasFailedBefore()) {
-            errorCallback("Live capture has previously failed and was called again. User was sent to manual capture.", AcuantJavascriptWebSdk.REPEAT_FAIL_CODE);
+        if (cameraHasFailedBefore() || isiOS15Plus() || isiPad13Plus()) {
+            errorCallback("Live capture has previously failed and was called again or user is on an iOS device. User was sent to manual capture.", AcuantJavascriptWebSdk.REPEAT_FAIL_CODE);
             startManualCapture(manualCallback);
             return;
         }
@@ -1239,7 +1239,26 @@ var AcuantCamera = (function () {
     function evaluateImage(imgData, width, height, capType, callback) {
 
         let result = {};
-        let waitingOnTheOther = true;
+        let waitingOnTheOther = true;        
+        
+        // Avoid calling moire on IOS to decrease memory comsumption
+        if (isiOS15Plus() || isiPad13Plus()) {
+            AcuantJavascriptWebSdk.crop(imgData, width, height, {
+                onSuccess: function (response) {
+                    result.cardtype = response.cardtype;
+                    result.dpi = response.dpi;
+                    result.image = response.image;
+                    
+                    result.moire = -1;
+                    result.moireraw = -1;
+                    finishCrop(result, capType, callback); 
+                },
+                onFail: function () {
+                    callback();
+                }
+            });
+            return;
+        }
 
         AcuantJavascriptWebSdk.moire(imgData, width, height, {
             onSuccess: function (moire, moireraw) {
@@ -1291,7 +1310,13 @@ var AcuantCamera = (function () {
                 result.sharpness = sharpness;
                 result.glare = glare;
                 result.image.data = toBase64(result, capType);
-                signImage(result, callback);
+                
+                // Avoid calling signImage on IOS to decrease memory comsumption
+                if ((isiOS15Plus() || isiPad13Plus())) {
+                    callback(result);
+                } else {
+                    signImage(result, callback);
+                }
             },
 
             onFail: function () {
