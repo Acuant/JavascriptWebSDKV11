@@ -411,7 +411,6 @@ var AcuantCameraUI = (function () {
     uiContext.beginPath();
     uiContext.moveTo(point.x, point.y);
     uiContext.lineTo(point.x + offsetX, point.y)
-    uiContext.stroke();
     uiContext.moveTo(point.x, point.y);
     uiContext.lineTo(point.x, point.y + offsetY);
     uiContext.stroke();
@@ -597,13 +596,12 @@ var AcuantCamera = (function () {
             primaryConstraints: {
                 video: {
                     facingMode: { exact: "environment" },
-                    height: { min: 1440, ideal: 1440 },
                     aspectRatio: Math.max(window.innerWidth, window.innerHeight) * 1.0 / Math.min(window.innerWidth, window.innerHeight),
                     resizeMode: "none",
 
                     //This might help performance, especially on low end devices. Might be less important after apple fixes the ios 15 bug,
                     // but right now we want to do as little redraws as possible to avoid GPU load.
-                    frameRate: { min: 10, ideal: 15, max: 24 }
+                    frameRate: { min: 10, ideal: 15, max: 15 }
                 }
             }
         };
@@ -613,11 +611,15 @@ var AcuantCamera = (function () {
         // to the id to get good dpi. Cameras might struggle to focus at very close angles.
         if (isIOS()) {
             config.primaryConstraints.video.aspectRatio = 4 / 3;
-        } else if (isSamsungNote10OrS10OrNewer()) {
-            //We found out that some triple camera Samsung devices (S10, S20, Note 20, etc) capture images blurry at edges.
-            //Zooming to 2X, matching the telephoto lens, doesn't solve it completely but mitigates it.
-            config.primaryConstraints.video.zoom = 2.0;
-        }
+            config.primaryConstraints.video.width = { min: 1920, ideal: 1920 };
+        } else {
+            config.primaryConstraints.video.height = { min: 1440, ideal: 1440 };
+            if (isSamsungNote10OrS10OrNewer()) {
+                //We found out that some triple camera Samsung devices (S10, S20, Note 20, etc) capture images blurry at edges.
+                //Zooming to 2X, matching the telephoto lens, doesn't solve it completely but mitigates it.
+                config.primaryConstraints.video.zoom = 2.0;
+            }
+        } 
 
         return config;
     }
@@ -770,7 +772,6 @@ var AcuantCamera = (function () {
             .catch(function (_) {
                 enableCamera(stream)
             });
-
     }
 
     //because of an ios bug to do with rotation this method will get called on rotation as the workaround
@@ -782,8 +783,8 @@ var AcuantCamera = (function () {
             onErrorCallback = errorCallback;
         }
 
-        if (cameraHasFailedBefore() || isiOS15Plus() || isiPad13Plus()) {
-            errorCallback("Live capture has previously failed and was called again or user is on an iOS device. User was sent to manual capture.", AcuantJavascriptWebSdk.REPEAT_FAIL_CODE);
+        if (cameraHasFailedBefore()) {
+            errorCallback("Live capture has previously failed and was called again. User was sent to manual capture.", AcuantJavascriptWebSdk.REPEAT_FAIL_CODE);
             startManualCapture(manualCallback);
             return;
         }
@@ -1119,7 +1120,6 @@ var AcuantCamera = (function () {
     }
 
     let imgDataPrevious;
-
     function setRepeatFrameProcessor() {
         if (!isStarted || isDetecting) {
             return;
@@ -1130,25 +1130,32 @@ var AcuantCamera = (function () {
         }
         isDetecting = true;
 
-        let max = Math.max(player.videoWidth, player.videoHeight)
-        let min = Math.min(player.videoWidth, player.videoHeight)
+        let max = Math.max(player.videoWidth, player.videoHeight);
+        let min = Math.min(player.videoWidth, player.videoHeight);
+        let newCanvasHeight = 0;
+        let newCanvasWidth = 0;
 
         if (max > TARGET_LONGSIDE_SCALE && min > TARGET_SHORTSIDE_SCALE) {
             if (player.videoWidth >= player.videoHeight) {
                 userConfig.frameScale = (TARGET_LONGSIDE_SCALE / player.videoWidth)
-                hiddenCanvas.width = TARGET_LONGSIDE_SCALE;
-                hiddenCanvas.height = player.videoHeight * userConfig.frameScale;
+                newCanvasWidth = TARGET_LONGSIDE_SCALE;
+                newCanvasHeight = player.videoHeight * userConfig.frameScale;
             }
             else {
                 userConfig.frameScale = (TARGET_LONGSIDE_SCALE / player.videoHeight)
-                hiddenCanvas.width = player.videoWidth * userConfig.frameScale;
-                hiddenCanvas.height = TARGET_LONGSIDE_SCALE;
+                newCanvasWidth = player.videoWidth * userConfig.frameScale;
+                newCanvasHeight = TARGET_LONGSIDE_SCALE;
             }
         }
         else {
             userConfig.frameScale = 1;
-            hiddenCanvas.width = player.videoWidth;
-            hiddenCanvas.height = player.videoHeight;
+            newCanvasWidth = player.videoWidth;
+            newCanvasHeight = player.videoHeight;
+        }
+
+        if (newCanvasWidth != hiddenCanvas.width || newCanvasHeight != hiddenCanvas.height) {
+            hiddenCanvas.width = newCanvasWidth;
+            hiddenCanvas.height = newCanvasHeight;
         }
 
         if (isStarted) {
@@ -1237,9 +1244,8 @@ var AcuantCamera = (function () {
     }
 
     function evaluateImage(imgData, width, height, capType, callback) {
-
         let result = {};
-        let waitingOnTheOther = true;        
+        let waitingOnTheOther = true;
         
         // Avoid calling moire on IOS to decrease memory comsumption
         if (isiOS15Plus() || isiPad13Plus()) {
@@ -1296,7 +1302,6 @@ var AcuantCamera = (function () {
                     finishCrop(result, capType, callback);
                 }
             },
-
             onFail: function () {
                 callback();
             }
@@ -1310,7 +1315,6 @@ var AcuantCamera = (function () {
                 result.sharpness = sharpness;
                 result.glare = glare;
                 result.image.data = toBase64(result, capType);
-                
                 // Avoid calling signImage on IOS to decrease memory comsumption
                 if ((isiOS15Plus() || isiPad13Plus())) {
                     callback(result);
@@ -1366,6 +1370,7 @@ var AcuantCamera = (function () {
     }
 
     function toBase64(result, capType) {
+
         hiddenCanvas.width = result.image.width;
         hiddenCanvas.height = result.image.height;
 
