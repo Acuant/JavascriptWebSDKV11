@@ -102,7 +102,6 @@ var AcuantCameraUI = (function () {
       }
       return minTime < DETECT_TIME_THRESHOLD;
     }
-
   }
 
   function handleLiveCapture(response, captureCb){
@@ -254,16 +253,21 @@ var AcuantCameraUI = (function () {
 
     if (showBackRect) {
       uiContext.fillStyle = "rgba(0, 0, 0, 0.5)";
-      uiContext.fillRect(x - offsetY, y + offsetY, measured.width + offsetX, -(Math.max(dimension.width, dimension.height) * 0.05));
+      uiContext.fillRect(
+        Math.round(x - offsetY),
+        Math.round(y + offsetY),
+        Math.round(measured.width + offsetX),
+        -Math.round((Math.max(dimension.width, dimension.height) * 0.05))
+      );
     }
 
     uiContext.font = (Math.ceil(Math.max(dimension.width, dimension.height) * fontWeight) || 0) + "px Sans-serif";
     uiContext.fillStyle = color;
     uiContext.fillText(text, x, y);
     updateUiStateTextElement(text);
-    uiContext.restore();
   }
 
+  // For screen readers
   const updateUiStateTextElement = (text) => {
     if (!uiStateTextElement) {
       uiStateTextElement = document.createElement('p');
@@ -395,10 +399,10 @@ var AcuantCameraUI = (function () {
     if (onDetectedResult && onDetectedResult.points && onDetectedResult.points.length === 4) {
       uiContext.beginPath();
 
-      uiContext.moveTo(onDetectedResult.points[0].x, onDetectedResult.points[0].y);
+      uiContext.moveTo(Math.round(onDetectedResult.points[0].x), Math.round(onDetectedResult.points[0].y));
 
       for (var i = 1; i < onDetectedResult.points.length; i++) {
-        uiContext.lineTo(onDetectedResult.points[i].x, onDetectedResult.points[i].y);
+        uiContext.lineTo(Math.round(onDetectedResult.points[i].x), Math.round(onDetectedResult.points[i].y));
       }
       uiContext.fillStyle = style;
       uiContext.strokeStyle = "rgba(0, 0, 0, 0)";
@@ -409,10 +413,12 @@ var AcuantCameraUI = (function () {
 
   function drawCorner(point, offsetX, offsetY) {
     uiContext.beginPath();
-    uiContext.moveTo(point.x, point.y);
-    uiContext.lineTo(point.x + offsetX, point.y)
-    uiContext.moveTo(point.x, point.y);
-    uiContext.lineTo(point.x, point.y + offsetY);
+    const roundedX  = Math.round(point.x);
+    const roundedY = Math.round(point.y);
+    uiContext.moveTo(roundedX, roundedY);
+    uiContext.lineTo(Math.round(roundedX + offsetX), roundedY)
+    uiContext.moveTo(roundedX, roundedY);
+    uiContext.lineTo(roundedX, Math.round(roundedY + offsetY));
     uiContext.stroke();
   }
 
@@ -1434,7 +1440,7 @@ var AcuantCamera = (function () {
                 "capturetype": capType
             }
         });
-        return AcuantJavascriptWebSdk.addMetadata(base64Img, { imageDescription, dateTimeOriginal: Date().toString() })
+        return AcuantJavascriptWebSdk.addMetadata(base64Img, { imageDescription, dateTimeOriginal: new Date().toUTCString() })
     }
 
     function getBrowserVersion(){
