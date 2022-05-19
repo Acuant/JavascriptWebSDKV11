@@ -265,6 +265,9 @@ var AcuantCameraUI = (function () {
     uiContext.fillStyle = color;
     uiContext.fillText(text, x, y);
     updateUiStateTextElement(text);
+
+    // undo rotation to keep the ui in the same position
+    uiContext.rotate(-(rotation * Math.PI / 180));
   }
 
   // For screen readers
@@ -501,6 +504,7 @@ var AcuantCamera = (function () {
 
     const TARGET_LONGSIDE_SCALE = 700;
     const TARGET_SHORTSIDE_SCALE = 500;
+    const MAX_VIDEO_WIDTH_IOS = 1920;
 
     let onDetectCallback = null;
     let onErrorCallback = null;
@@ -520,7 +524,7 @@ var AcuantCamera = (function () {
         isCameraSupported: 'mediaDevices' in navigator && mobileCheck(),
         isIOSWebview: webViewCheck(),
         isIOS: isIOS,
-        setRepeatFrameProcessor: setRepeatFrameProcessor,
+        setRepeatFrameProcessor: processFrameForDetection,
         evaluateImage: evaluateImage
     };
     
@@ -539,7 +543,7 @@ var AcuantCamera = (function () {
             var v = (navigator.appVersion).match(/OS (\d+)_(\d+)_?(\d+)?/);
             return [parseInt(v[1], 10), parseInt(v[2], 10), parseInt(v[3] || 0, 10)];
         }
-        return ""
+        return "";
     }
 
     function isFireFox(){
@@ -557,7 +561,7 @@ var AcuantCamera = (function () {
     };
 
     function isIOS() {
-        return ((/iPad|iPhone|iPod/.test(navigator.platform) && checkIOSVersion()) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+        return ((/iPad|iPhone|iPod/.test(navigator.platform) && checkIOSVersion()) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
     }
 
     function isSamsungNote10OrS10OrNewer() {
@@ -570,27 +574,6 @@ var AcuantCamera = (function () {
         const smallerModelNumber = 970; // S10e
         return !isNaN(modelNumber) && modelNumber >= smallerModelNumber;
     }
-
-    //need to investigate why adding max is causing the focal length/depth of field to change
-    // let constraintWidth = 1440;
-
-    // var userConfig = {
-    //     targetWidth: (window.innerWidth || 950),
-    //     targetHeight: (window.innerHeight),
-    //     frameScale: 1,
-    //     primaryConstraints: {
-    //         video: {
-    //             facingMode: { exact: "environment" },
-    //             height: { min: constraintWidth, ideal: constraintWidth, max: Math.floor(constraintWidth * 1.5) },
-    //             width: { min: Math.floor(constraintWidth * getAspectRatio() * 0.9), max: Math.floor(constraintWidth * getAspectRatio() * 1.5) },
-    //             aspectRatio: getAspectRatio(),
-
-    //             //This might help performance, especially on low end devices. Might be less important after apple fixes the ios 15 bug, 
-    //             // but right now we want to do as little redraws as possible to avoid GPU load.
-    //             frameRate: { min: 10, ideal: 15, max: 24 } 
-    //         }
-    //     }
-    // };
 
     var userConfig = getUserConfig()
 
@@ -617,7 +600,7 @@ var AcuantCamera = (function () {
         // to the id to get good dpi. Cameras might struggle to focus at very close angles.
         if (isIOS()) {
             config.primaryConstraints.video.aspectRatio = 4 / 3;
-            config.primaryConstraints.video.width = { min: 1920, ideal: 1920 };
+            config.primaryConstraints.video.width = { min: MAX_VIDEO_WIDTH_IOS, ideal: MAX_VIDEO_WIDTH_IOS };
         } else {
             config.primaryConstraints.video.height = { min: 1440, ideal: 1440 };
             if (isSamsungNote10OrS10OrNewer()) {
@@ -727,7 +710,7 @@ var AcuantCamera = (function () {
                         }
                     }
                 });
-                resolve(minSuffixDevice.device)
+                resolve(minSuffixDevice.device);
             })
             .catch(function(_) {
                 // retuning no device
@@ -737,7 +720,7 @@ var AcuantCamera = (function () {
     }
 
     function startCamera(constraints, iteration = 0) {
-        const MAX_ITERATIONS = 2
+        const MAX_ITERATIONS = 2;
         function turnOnCamera(stream) {
             if (isSafari()) {
                 //there is a third party library called screenfully which could enable fullscreen behavior in safari.
@@ -773,10 +756,10 @@ var AcuantCamera = (function () {
     function requestFullScreen(stream) {
         acuantCamera.requestFullscreen()
             .then(function () {
-                enableCamera(stream)
+                enableCamera(stream);
             })
             .catch(function (_) {
-                enableCamera(stream)
+                enableCamera(stream);
             });
     }
 
@@ -907,6 +890,11 @@ var AcuantCamera = (function () {
                     width = image.width,
                     height = image.height;
 
+                if (isIOS()) {
+                    MAX_WIDTH = MAX_VIDEO_WIDTH_IOS;
+                    MAX_HEIGHT = Math.floor(MAX_VIDEO_WIDTH_IOS * 3 / 4);
+                }
+
                 var largerDimension = width > height ? width : height;
 
                 if (largerDimension > MAX_WIDTH) {
@@ -948,8 +936,7 @@ var AcuantCamera = (function () {
                     height: height
                 });
 
-                evaluateImage(imgData, width, height, "MANUAL", onManualCaptureCallback.onCropped)
-
+                evaluateImage(imgData, width, height, "MANUAL", onManualCaptureCallback.onCropped);
             }
         }
         
@@ -987,7 +974,6 @@ var AcuantCamera = (function () {
         isStarted = false;
         isDetecting = false;
         captureOrientation = -1;
-        imgDataPrevious = undefined;
         if (detectTimeout) {
             clearTimeout(detectTimeout);
             detectTimeout = null;
@@ -1084,35 +1070,40 @@ var AcuantCamera = (function () {
         }
     }
 
+    function runDetection() {
+        if (!player || player.paused) {
+            return;
+        }
+
+        processFrameForDetection();
+        detectTimeout = setTimeout(runDetection, 100); // detecting at most 10 times a second, short circuits out very quickly if detect is running
+    }
+
     function onLoadedMetaData() {
         if (player.videoWidth + player.videoHeight < 1000) {
             endCamera();
             callCameraError("Camera not supported", AcuantJavascriptWebSdk.START_FAIL_CODE);
-        }
-        else {
+        } else {
             setDimens();
-            (function loopDetect() {
-                if (player && !player.paused) {
-                  setRepeatFrameProcessor();
-                  detectTimeout = setTimeout(loopDetect, 100); // detecting at most 10 times a second, short circuits out very quickly if detect is running
-              }
-            })();
+            runDetection();
         }
     }
 
-    // We need this to restart camera after browser is backgrounded/resumed since the timer is throttled by the OS
-    function restartCameraAfterBrowserResume() {
-        // check detectTimeout to make sure not to restart camera on the first load
-        if (detectTimeout) {
-            endCamera();
-            start();
+    // We need this to re-create detect timeout after browser is backgrounded/resumed since the timer is throttled by the OS
+    function restartDetectionAfterBrowserResume() {
+        if (!detectTimeout) {
+            return;
         }
-    };
+
+        clearTimeout(detectTimeout);
+        isDetecting = false;
+        runDetection();
+    }
 
     function removeEvents() {
         window.removeEventListener('resize', onResize);
         if (player) {
-            player.removeEventListener('play', restartCameraAfterBrowserResume);
+            player.removeEventListener('play', restartDetectionAfterBrowserResume);
             player.removeEventListener('loadedmetadata', onLoadedMetaData);
         }
     }
@@ -1120,13 +1111,12 @@ var AcuantCamera = (function () {
     function addEvents() {
         window.addEventListener('resize', onResize);
         if (player) {    
-            player.addEventListener('play', restartCameraAfterBrowserResume);        
+            player.addEventListener('play', restartDetectionAfterBrowserResume);
             player.addEventListener('loadedmetadata', onLoadedMetaData);
         }
     }
 
-    let imgDataPrevious;
-    function setRepeatFrameProcessor() {
+    function processFrameForDetection() {
         if (!isStarted || isDetecting) {
             return;
         }
@@ -1175,32 +1165,8 @@ var AcuantCamera = (function () {
                 return;
             }
 
-            if (isiOS15Plus() || isiPad13Plus()) {
-                //this is part of the mitigation of the ios 15 issue. When the camera fails it will either set video width to 0 (caught above), return a blank image (caught by this), or return the last successful frame over and over (caught by this).
-                if (imgDataPrevious && arraysEqualish(imgDataPrevious.data, imgData.data)) {
-                    sequenceBreak();
-                    return;
-                }
-                imgDataPrevious = imgData;
-            }
-
             detect(imgData, hiddenCanvas.width, hiddenCanvas.height);
         }
-    }
-
-    //Only check the first 25000 bytes for speed purposes under the assumption that camera jitter and small fluctuations in input will always lead to 
-    // at least one in 25000 bytes to change. So far I have not seen this return a false positive.
-    function arraysEqualish(a, b) {
-        if (a === b) return true;
-        if (a == null || b == null) return false;
-        if (a.length !== b.length) return false;
-
-        let len = a.length > 25000 ? 25000 : a.length;
-      
-        for (var i = 0; i < len; ++i) {
-            if (a[i] !== b[i]) return false;
-        }
-        return true;
     }
 
     function detect(imgData, width, height) {
@@ -1252,25 +1218,6 @@ var AcuantCamera = (function () {
     function evaluateImage(imgData, width, height, capType, callback) {
         let result = {};
         let waitingOnTheOther = true;
-        
-        // Avoid calling moire on IOS to decrease memory comsumption
-        if (isiOS15Plus() || isiPad13Plus()) {
-            AcuantJavascriptWebSdk.crop(imgData, width, height, {
-                onSuccess: function (response) {
-                    result.cardtype = response.cardtype;
-                    result.dpi = response.dpi;
-                    result.image = response.image;
-                    
-                    result.moire = -1;
-                    result.moireraw = -1;
-                    finishCrop(result, capType, callback); 
-                },
-                onFail: function () {
-                    callback();
-                }
-            });
-            return;
-        }
 
         AcuantJavascriptWebSdk.moire(imgData, width, height, {
             onSuccess: function (moire, moireraw) {
@@ -1305,7 +1252,7 @@ var AcuantCamera = (function () {
                 if (waitingOnTheOther) {
                     waitingOnTheOther = false;
                 } else {
-                    finishCrop(result, capType, callback);
+                    finishCrop(result, capType, callback); 
                 }
             },
             onFail: function () {
@@ -1316,25 +1263,16 @@ var AcuantCamera = (function () {
 
     function finishCrop(result, capType, callback) {
 
-        AcuantJavascriptWebSdk.metrics(result.image, result.image.width, result.image.height, {
-            onSuccess: function (sharpness, glare) {
-                result.sharpness = sharpness;
-                result.glare = glare;
-                result.image.data = toBase64(result, capType);
-                // Avoid calling signImage on IOS to decrease memory comsumption
-                if ((isiOS15Plus() || isiPad13Plus())) {
-                    callback(result);
-                } else {
-                    signImage(result, callback);
-                }
-            },
+        async function handleMetrics (sharpness, glare) {
+            result.sharpness = sharpness;
+            result.glare = glare;
+            result.image.data = await toBase64(result, capType);
+            signImage(result, callback);
+        }
 
-            onFail: function () {
-                result.sharpness = -1;
-                result.glare = -1;
-                result.image.data = toBase64(result, capType);
-                callback()
-            }
+        AcuantJavascriptWebSdk.metrics(result.image, result.image.width, result.image.height, {
+            onSuccess: handleMetrics,
+            onFail: () => handleMetrics(-1, -1),  
         });
     }
 
@@ -1375,7 +1313,12 @@ var AcuantCamera = (function () {
         });
     }
 
-    function toBase64(result, capType) {
+    async function toBase64(result, capType) {
+
+        if (!hiddenCanvas || !hiddenContext) {
+            hiddenCanvas = document.createElement('canvas');
+            hiddenContext = hiddenCanvas.getContext('2d');
+        }
 
         hiddenCanvas.width = result.image.width;
         hiddenCanvas.height = result.image.height;
@@ -1398,7 +1341,7 @@ var AcuantCamera = (function () {
 
         result.image.bytes = hiddenContext.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height).data;
 
-        let quality = (typeof acuantConfig !== "undefined" && typeof acuantConfig.jpegQuality === 'number') ? acuantConfig.jpegQuality : 1.0
+        let quality = (typeof acuantConfig !== "undefined" && typeof acuantConfig.jpegQuality === 'number') ? acuantConfig.jpegQuality : 1.0;
         let base64Img = hiddenCanvas.toDataURL("image/jpeg", quality);
         hiddenContext.clearRect(0, 0, hiddenCanvas.width, hiddenCanvas.height);
 
@@ -1408,10 +1351,25 @@ var AcuantCamera = (function () {
             hiddenCanvas = null;
         }
 
-        return addExif(result, capType, base64Img);
+        const exifResult = await addExif(result, capType, base64Img);
+        return exifResult;
     }
 
-    function addExif(result, capType, base64Img) {
+    function getCvmlVersion() {
+        return new Promise((resolve) => {
+            AcuantJavascriptWebSdk.getCvmlVersion({
+                onSuccess: (version) => {
+                    resolve(version);
+                },
+                onFail: () => {
+                    resolve("unknown");
+                }
+            });
+        })
+    } 
+
+    async function addExif(result, capType, base64Img) {
+        const cvmlVersion = await getCvmlVersion();
         const imageDescription = JSON.stringify({
             "cvml":{ 
                 "cropping":{
@@ -1433,34 +1391,34 @@ var AcuantCamera = (function () {
                     "normalized": result.glare,
                     "elapsed": -1
                 },
-                "version": AcuantConfig.cvmlVersion
+                "version": cvmlVersion
             },
             "device":{
                 "version": getBrowserVersion(),
                 "capturetype": capType
             }
         });
-        return AcuantJavascriptWebSdk.addMetadata(base64Img, { imageDescription, dateTimeOriginal: new Date().toUTCString() })
+        return AcuantJavascriptWebSdk.addMetadata(base64Img, { imageDescription, dateTimeOriginal: new Date().toUTCString() });
     }
 
-    function getBrowserVersion(){
-        var ua= navigator.userAgent, tem, 
-        M= ua.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || [];
-        if(/trident/i.test(M[1])){
-            tem=  /\brv[ :]+(\d+)/g.exec(ua) || [];
+    function getBrowserVersion() {
+        var ua = navigator.userAgent, tem, 
+        M = ua.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || [];
+        if (/trident/i.test(M[1])) {
+            tem = /\brv[ :]+(\d+)/g.exec(ua) || [];
             return 'IE '+(tem[1] || '');
         }
-        if(M[1]=== 'Chrome'){
-            tem= ua.match(/\b(OPR|Edge)\/(\d+)/);
-            if(tem!= null) return tem.slice(1).join(' ').replace('OPR', 'Opera');
+        if (M[1] === 'Chrome') {
+            tem = ua.match(/\b(OPR|Edge)\/(\d+)/);
+            if(tem != null) return tem.slice(1).join(' ').replace('OPR', 'Opera');
         }
-        M= M[2]? [M[1], M[2]]: [navigator.appName, navigator.appVersion, '-?'];
-        if((tem= ua.match(/version\/(\d+)/i))!= null) M.splice(1, 1, tem[1]);
+        M = M[2] ? [M[1], M[2]]: [navigator.appName, navigator.appVersion, '-?'];
+        if ((tem = ua.match(/version\/(\d+)/i)) != null) M.splice(1, 1, tem[1]);
         return M.join(' ');
     }
 
     function setImageData(imgData, src) {
-        for (let i = 0; i < imgData.length; i++) {
+        for (let i = 0; i < imgData.length; ++i) {
             imgData[i] = src[i];
         }
     }

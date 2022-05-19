@@ -1,6 +1,6 @@
-# Acuant JavaScript Web SDK v11.6.3
+# Acuant JavaScript Web SDK v11.6.4
 
-**April 2022**
+**May 2022**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -97,6 +97,8 @@ The SDK includes the following modules:
 	- **AcuantMetricsWorker.min.js**
 	- **AcuantMetricsService.js**
 	- **AcuantMetricsService.wasm**
+
+	**Note** To ensure that SDK can instantiate WebAssembly modules efficiently, make sure the hosting server is serving `.wasm` files with the correct mime type `application/wasm`.
 
 1. Load the main script files, excluding ones that will not be used:
 	
@@ -230,7 +232,7 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 **Prerequisite**: Initialize the SDK (see [Initialize and Start the SDK](#initialize-and-start-the-sdk))
 
 - This code is used for live capture; live detection, frame analysis, and auto capture of documents. After capture, it also processes the image.
-- AcuantCameraUI is the default implementation of the UI and uses AcuantCamera to access the device’s native camera via WebRTC.
+- AcuantCameraUI is the default implementation of the UI and uses AcuantCamera to access the deviceâ€™s native camera via WebRTC.
 
 ### Start Live Capture
 
@@ -462,11 +464,9 @@ This information is for processing images manually if they are not captured thro
 
 -------------------------------------------------------------
 
-## Face Capture and Acuant Passive Liveness
+## Face Capture with real-time face detection and Acuant Passive Liveness
 
-**Prerequisite:** To use the face capture and FaceID API, credentials with FaceID must be enabled. 
-
-Acuant recommends using the **LiveAssessment** property rather than the score) to evaluate response. **AcuantPassiveLiveness.start** will return a rescaled image in onCaptured callback. The module supports real-time face detection only Android.
+Acuant recommends using the **LiveAssessment** property rather than the score to evaluate response. **AcuantPassiveLiveness.start** will return a rescaled image in onCaptured callback.
 
 Follow these recommendations to effectively process an image for passive liveness:
 #### Image requirements
@@ -488,8 +488,6 @@ The following may significantly increase errors or false results:
 - Texture filtering
 - A spotlight on the face and nearest surroundings
 - An environment with poor lighting or colored light
-
-**Note**: On iOS, real-time face detection is not supported, only manual capture is available. Also, the use of fish-eye lenses is not supported by this API.
 
 ### Start face capture and send Passive Liveness request
 
@@ -545,24 +543,23 @@ The following may significantly increase errors or false results:
 		}
 	}
 	```
-	**Note:** On iOS only onCaptured will be called.
 
-1. Start face capture:
+1. Start face capture with real-time detection:
 
 	```
 	AcuantPassiveLiveness.start(faceCaptureCallback, faceDetectionStates);
 	```
 
-	**Note:** On iOS calling ```AcuantPassiveLiveness.start``` will launch the native camera. Alternatively, the module exposes ```startManualCapture``` method that launches the native camera and returns the image taken in base64.
+	**Note:** The module also exposes ```startManualCapture``` method that launches the native camera and returns the image taken in base64.
 
-1. Upload face image and send request for Passive Liveness result:
+1. Get the passive liveness result for the face image:
 
 	```
 	AcuantPassiveLiveness.getLiveness({
 		endpoint: "ACUANT_PASSIVE_LIVENESS_ENDPOINT",
 		token: "ACUANT_PASSIVE_LIVENESS_TOKEN",
 		subscriptionId: "ACUANT_PASSIVE_LIVENESS_SUBSCRIPTIONID",
-		image: base64img
+		image: base64Image
 	}, (result) => {
 		result = {
 			LivenessResult = {
@@ -590,6 +587,16 @@ The following may significantly increase errors or false results:
 				"NotFound"
 		}
 	})
+	```
+
+	**Note:** To get the liveness result, credentials with FaceID must be enabled.
+
+1. End Live capture:
+
+	The camera closes automatically after the user takes a selfie or when the user taps Close. However, you also can close the live camera by calling the ```end``` function.
+
+	```
+	AcuantPassiveLiveness.end()
 	```
 
 ----------
@@ -734,6 +741,9 @@ Starting and stopping Workers is a very slow operation, so you will see performa
 		
 	Then add the regular HTML content to the page embedded in the iframe.
 
+1. My browser console displays GET tiny_face_detector_model-shard1 404.
+
+	Make sure your hosting server is configured to serve extensionless files correctly. By default, IIS, and possibly other servers, are not configured to correctly serve extensionless files.
 
 ----------
 
