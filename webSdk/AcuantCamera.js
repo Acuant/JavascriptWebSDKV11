@@ -1,5 +1,5 @@
-// eslint-disable-next-line no-unused-vars
-const AcuantCameraUI = (function () {
+// eslint-disable-next-line no-unused-vars, no-var
+var AcuantCameraUI = (function () {
   'use strict';
   let player = null;
 
@@ -39,7 +39,7 @@ const AcuantCameraUI = (function () {
     }
   };
 
-  const TRIGGER_TIME = 2000;
+  const TRIGGER_TIME = 3000;
   const DETECT_TIME_THRESHOLD = 400;//slightly increased from 300, 
   let minTime = Number.MAX_VALUE;
 
@@ -486,9 +486,8 @@ const AcuantCameraUI = (function () {
 
 })();
 
-/* eslint-disable no-unused-vars */
-// eslint-disable-next-line no-redeclare
-const AcuantCamera = (function () {
+// eslint-disable-next-line no-unused-vars, no-var
+var AcuantCamera = (function () {
   'use strict';
   let player = null;
   let uiCanvas = null;
@@ -594,7 +593,8 @@ const AcuantCamera = (function () {
 
           //This might help performance, especially on low end devices. Might be less important after apple fixes the ios 15 bug,
           // but right now we want to do as little redraws as possible to avoid GPU load.
-          frameRate: { min: 10, ideal: 15, max: 15 }
+          //20221110 update removing this as this did not seem to be relevant and might be negatively affecting firefox
+          //frameRate: { min: 10, ideal: 15, max: 15 }
         }
       }
     };
@@ -603,8 +603,26 @@ const AcuantCamera = (function () {
     // I believe this is because the true ratio of the camera is 4:3 so this ratio means people do not need to get as close
     // to the id to get good dpi. Cameras might struggle to focus at very close angles.
     if (isIOS()) {
-      config.primaryConstraints.video.aspectRatio = 4 / 3;
-      config.primaryConstraints.video.width = { min: MAX_VIDEO_WIDTH_IOS, ideal: MAX_VIDEO_WIDTH_IOS };
+      if (isDeviceAffectedByIOS16Issue()) {
+        // ios devices dont support zoom, because why would they?!
+        // config.primaryConstraints.video.zoom = 2;
+        //need to instead bump resolution since we will be capturing from further away, ios 16 seems to have fixed the issue so hopefully alright.
+        //also change aspect ratio to make it seem like the id is closer from user's pov.
+        config.primaryConstraints.video.aspectRatio = Math.max(window.innerWidth, window.innerHeight) * 1.0 / Math.min(window.innerWidth, window.innerHeight);
+        //unsure about the stability of pushing resolution this high, but I have not seen a crash thus far
+        config.primaryConstraints.video.height = { min: 1440, ideal: 2880 };
+      } else {
+        //1.3333 aspect ratio and lower ideal height seems to result in better focus and higher dpi on ios devices.
+        // I believe this is because the true ratio of the camera is 4:3 so this ratio means people do not need to get as close
+        // to the id to get good dpi. Cameras might struggle to focus at very close angles.
+        //20221110 update something like the ios 16 fix might work better for this, if we can detect those devices
+        config.primaryConstraints.video.aspectRatio = 4 / 3;
+        if (isiOS15()) {
+          config.primaryConstraints.video.width = { min: MAX_VIDEO_WIDTH_IOS, ideal: MAX_VIDEO_WIDTH_IOS };
+        } else {
+          config.primaryConstraints.video.height = { min: 1440, ideal: 1440 };
+        }
+      }
     } else {
       config.primaryConstraints.video.height = { min: 1440, ideal: 1440 };
       if (isSamsungNote10OrS10OrNewer()) {
@@ -895,7 +913,7 @@ const AcuantCamera = (function () {
           width = image.width,
           height = image.height;
 
-        if (isIOS()) {
+        if (isiOS15()) {
           MAX_WIDTH = MAX_VIDEO_WIDTH_IOS;
           MAX_HEIGHT = Math.floor(MAX_VIDEO_WIDTH_IOS * 3 / 4);
         }
@@ -1022,9 +1040,42 @@ const AcuantCamera = (function () {
     return ver && ver != -1 && ver.length >= 2 && ver[0] == 14 && ver[1] >= 4;
   }
 
-  function isiOS15Plus() {
+  function isiOS15() {
     let ver = iOSversion();
     return ver && ver != -1 && ver.length >= 1 && ver[0] == 15;
+  }
+
+ function isiOS16() {
+    let ver = iOSversion();
+    return ver && ver != -1 && ver.length >= 1 && ver[0] == 16
+  }
+
+  function isDeviceAffectedByIOS16Issue() {
+    let decodedCookie = decodeURIComponent(document.cookie);
+    if (decodedCookie.includes('AcuantForceRegularCapture=true')) {
+      return false;
+    }
+    if (decodedCookie.includes('AcuantForceDistantCapture=true')) {
+      return true;
+    }
+    if (isiOS16()) {
+      let dims = [screen.width, screen.height];
+      let long = Math.max(...dims);
+      let short = Math.min(...dims);
+      if (long == 852 && short == 393) { //14 pro
+        return true;
+      }
+      if (long == 932 && short == 430) { //14 pro max
+        return true;
+      }
+      if (long == 844 && short == 390) { //13 pro
+        return true;
+      }
+      if (long == 926 && short == 428) { //13 pro max
+        return true;
+      }
+    }
+    return false;
   }
 
   function isiPad13Plus() {
@@ -1260,13 +1311,6 @@ const AcuantCamera = (function () {
           }
         });
 
-        //cant seem to figure out the logic of the math here. Ideally if we get 600 dpi even far from the screen edges we 
-        //should still mark it as an okay doc, but I tried a couple different things and could not get the theoretical dpi 
-        //to match the real one.
-        //
-        //const dpi = response.dpi / userConfig.frameScale * userConfig.canvasScale;
-        //console.log("Response DPI: " + response.dpi + " Frame Scale: " + userConfig.frameScale + " Canvas Scale: " + userConfig.canvasScale + " Theoretical dpi: " + dpi)
-
         const minRatio = Math.min(response.dimensions.width, response.dimensions.height) / Math.min(hiddenCanvas.width, hiddenCanvas.height);
         const maxRatio = Math.max(response.dimensions.width, response.dimensions.height) / Math.max(hiddenCanvas.width, hiddenCanvas.height);
         const isPassport = response.type == 2;
@@ -1282,7 +1326,21 @@ const AcuantCamera = (function () {
         if (isIOS()) {
           minRatioLowerBoundThreshold = 0.65;
           maxRatioLowerBoundThreshold = 0.7;
-          if (isPassport) {
+          if (isDeviceAffectedByIOS16Issue()) {
+            if (isPassport) { //intentionally large to help address issues with cvml inaccuaretly detecting passports
+              minRatioUpperBoundThreshold = 0.72;
+              maxRatioUpperBoundThreshold = 0.77;
+              minRatioLowerBoundThreshold = 0.22;
+              maxRatioLowerBoundThreshold = 0.28;
+              // minRatioLowerBoundThreshold = 0.57;
+              // maxRatioLowerBoundThreshold = 0.53;
+            } else { //id
+              minRatioUpperBoundThreshold = 0.41;
+              maxRatioUpperBoundThreshold = 0.45;
+              minRatioLowerBoundThreshold = 0.22;
+              maxRatioLowerBoundThreshold = 0.28;
+            }
+          } else if (isPassport) {
             minRatioUpperBoundThreshold = 0.95;
             maxRatioUpperBoundThreshold = 1;
             minRatioLowerBoundThreshold = 0.7;
@@ -1459,7 +1517,7 @@ const AcuantCamera = (function () {
   }
 
   function sequenceBreak() {
-    if (isiOS15Plus() || isiPad13Plus()) {
+    if (isiOS15() || isiPad13Plus()) {
       callCameraError(SEQUENCE_BREAK_IOS_15, AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE);
     } else {
       callCameraError(SEQUENCE_BREAK_OTHER, AcuantJavascriptWebSdk.SEQUENCE_BREAK_CODE);

@@ -1,6 +1,6 @@
-# Acuant JavaScript Web SDK v11.7.0
+# Acuant JavaScript Web SDK v11.7.1
 
-**July 2022**
+**November 2022**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -697,13 +697,17 @@ Starting and stopping Workers is a very slow operation, so you will see performa
 
 ## Known Issues/FAQ
 
+1. iPhone 13 Pro, 13 Pro Max, 14 Pro, and 14 Pro Max struggle to focus at close distances when running iOS 16.
+
+	11.7.1 adds a workaround for this issue by having those devices capture from further away. This is a workaround for an issue in iOS 16. There is a more detailed explanation of both the issue and the workaround in the 11.7.1 section of the [Migration Details](docs/MigrationDetails.md). We have been in contact with Apple and they tell us that they are now aware of the issue and are looking into it.
+
 1. iOS 15 has multiple issues that manifest themselves as GPU Highwater failures (ie system daemon used too much memory).
 
-	The reduced resolution of the camera in the latest version of the SDK has mitigated the issue. Unfortunately, because this is an iOS issue, we can’t provide a better solution other than reducing the capture resolution. This issue will be revisited in the next major iOS release to determine which changes have been made in that version.
+	The reduced resolution of the camera in the latest version of the SDK has mitigated the issue. Unfortunately, because this is an iOS issue, we can’t provide a better solution other than reducing the capture resolution. This issue was fixed in iOS 16.
 
 1. The camera preview has a low/throttled frame rate (as low as 10-15fps).
 
-	The frame rate is intentionally throttled because higher frame rates on iOS 15 can be unstable. For consistency, the frame rate is throttled on all devices. In our experience, the throttled frame rate is high enough to successfully perform Live Capture. We will continue to monitor this issue and will remove the throttle once we believe higher frame rates no longer cause instability.
+	The frame rate is intentionally throttled because higher frame rates on iOS 15 can be unstable. For consistency, the frame rate is throttled on all devices. In our experience, the throttled frame rate is high enough to successfully perform Live Capture. We will continue to monitor this issue and will remove the throttle once we believe higher frame rates no longer cause instability. This throttling was removed in 11.7.1
 
 1. Camera previews on iOS 15.0 and 15.1 can appear rotated
 

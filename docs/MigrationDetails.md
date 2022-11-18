@@ -1,5 +1,28 @@
 # Migration Details JavaScript Web SDK
 
+## v11.7.1
+
+v11.7.1 is backwards compatible. This section provides details about the focus issues in iOS 16 and tools for more in-depth implementations. If you are not interested in this information, you can ignore this section.
+
+iOS 16 introduced issues that affect the iPhone 13 Pro, 13 Pro Max, 14 Pro, and 14 Pro Max. In the JS camera, iOS  exposes only a generic front and back camera. Apple's implementation of this generic back camera always selects the same (non-near focus) camera on multi-camera devices and does not re-select when that camera fails to focus. As a result, we have no way to select a camera that can focus at short distances. Apple also did not implement zoom control for cameras in JS, nor a way to know the camera's minimum focus distance. We have contacted Apple about this issue. However, in the meantime, we have provided a workaround.
+
+Forcing these devices to capture from farther away achieves adequate sharpness. Due to iOS 16's increased stability, we also were able to increase the capture resolution for the affected devices. As a result, even though these devices are capturing from farther away, the higher resolution results in a DPI similar to that of other devices. The main limitation to this workaround is the detection of the affected devices. Because modern browsers do not provide detailed information about the user's device inside of the UA, we have to use secondary characteristics to "fingerprint" these devices. The simplest method that results in a high success rate is to examine the device's viewport. If the viewport matches one of four hardcoded sizes, we instruct the device to run at a higher resolution and to capture from farther away.
+
+This method, however, can occasionally result in false positives and false negatives. There are several devices (the iPhone 12, 12 Pro, 12 Pro Max, 13, and 14) that share a viewport size with the affected devices. As a result, those devices also will be instructed to capture from farther away. This behavior is not a major concern because those devices can still capture a sharp image with adequate DPI at this increased distance. Additionally, if one of the affected devices is running with an nonstandard viewport size, the device will not be detected and likely will be unable to focus. We consider this to be a rare edge case, but it is possible.
+
+To help account for these cases, we provided the ability for the implementer to override this detection by setting one of the following cookies on the page:
+
+`AcuantForceRegularCapture=true` forces the capture to proceed at a normal distance, while
+
+`AcuantForceDistantCapture=true` forces the capture to use the far away capture.
+
+If both cookies are set, `AcuantForceRegularCapture=true` takes priority. If, as an implementer, you have additional knowledge about the user's device, you can use the cookies to guarantee that the user is instructed to capture at the correct distance. You also can use the cookies to, for example, send a user to distant capture if the user has captured a blurry image several times. Or, prompt the user by asking whether the user's device is one of the affected ones, and then use the cookies to send the user to the correct capture flow.
+
+On most devices manual capture also allows for capture of sharp, high resolution images, this is another alternative if a user is consistently getting low sharpness.
+
+We are hopeful that Apple will resolve this issue so we can return all devices to the regular capture.
+
+
 ## v11.7.0
 
 ### AcuantCamera
@@ -177,7 +200,7 @@ Remove the old html elements (canvas and video) and replace them with a single d
 
 	<div id="acuant-camera"></div>
       
-Most likely, you are already using a viewport meta tag for your Mobile page. Using a meta tag is now a requirement. If you don’t use the tag, the device will render at a much higher resolution and cause frequent GPU and memory failures.
+Most likely, you are already using a viewport meta tag for your Mobile page. Using a meta tag is now a requirement. If you don't use the tag, the device will render at a much higher resolution and cause frequent GPU and memory failures.
 
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 		
