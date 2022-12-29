@@ -1,6 +1,6 @@
-# Acuant JavaScript Web SDK v11.7.1
+# Acuant JavaScript Web SDK v11.8.0
 
-**November 2022**
+**December 2022**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -54,6 +54,7 @@ The SDK includes the following modules:
 - Live Document Capture functionality
 - Uses AssureID Document Library to detect documents, crop, calculate sharpness and glare
 - Additional Camera UI provided by Acuant
+- Embed barcode reader
 
 **Acuant Passive Liveness (AcuantPassiveLiveness.min.js)**
 
@@ -82,6 +83,7 @@ The SDK includes the following modules:
 1. Add the following files, excluding ones that will not be used (**Note**:  These files must be accessible in the public resource directory of the hosted application):
 	- **AcuantJavaScriptSdk.min.js**
 	- **AcuantCamera.min.js**
+		- **html5-qrcode.min.js**
 	- **AcuantPassiveLiveness.min.js**
 		- **opencv.min.js**
 		- **face_landmark_68_tiny_model-weights_manifest.json**
@@ -106,6 +108,7 @@ The SDK includes the following modules:
 		<script async src="AcuantCamera.min.js"></script>
 		<script async src="AcuantPassiveLiveness.min.js"></script>
 		<script async src="opencv.min.js" charset="utf-8"></script>
+		<script async src="html5-qrcode.min.js"></script>
 		
 	**Note:** OpenCV is only needed for AcuantPassiveLiveness module.
 
@@ -242,7 +245,7 @@ For other browsers that do not support WebRTC, the device's camera app (manual c
 
 1. Add HTML to show the live capture preview:
 		
-		<div id="acuant-camera"></div>
+		<div id="acuant-camera" style="height:custom-height; width:custom-width"></div>
 
 1. Set custom strings. (Optional)
 
@@ -377,7 +380,8 @@ The general flow of a custom camera ui is as follows:
 		response = {
 			data: object, //imgData
 			width: number, 
-			height: number
+			height: number,
+      isPortraitOrientation: boolean
 		}
 		
 1. Use the response as necessary. When you are ready, go to the section [Process the Image Manually](#Process-the-Image-Manually)
@@ -407,7 +411,7 @@ The general flow of a custom camera ui is as follows:
 		    // used for live capture UI (AcuantCameraUI or custom)
 		    function start(detectCb, cameraCb, errorCb)//start the frame analysis
 		    function triggerCapture(cb)//capture
-		    function evaluateImage(imgData, width, height, capType, callback)//performs the full workflow of crop, sharpness, glare, and other metrics.
+		    function evaluateImage(imgData, width, height, isPortraitOrientation, capType, callback)//performs the sharpness, glare, barcode scan and other metrics.
 		    function end()//end camera
 		    
 		})();
@@ -420,11 +424,11 @@ The general flow of a custom camera ui is as follows:
 	
 ### Image from AcuantCameraUI and AcuantCamera ###
 	
-When using AcuantCameraUI and AcuantCamera, after the document image is captured, it is automatically processed with crop, sharpness, and glare. 
+When using AcuantCameraUI and AcuantCamera, after the document image is captured, it is automatically processed with crop, sharpness, glare and barcode scan. 
 
-**Cropping, Sharpness, and Glare**
+**Cropping, Sharpness, Glare and Barcode scan**
 
-The processed image and data are returned via the camera **onCropped** callback. The image can be used to verify the crop, sharpness, and glare of the image, and then upload the document. 
+The processed image and data are returned via the camera **onCropped** callback. The image can be used to verify the crop, sharpness, and glare of the image, and then upload the document. If the image contains a barcode, it is scanned and included in the response.
 
 Here is the response from the callback:
 
@@ -433,7 +437,8 @@ Here is the response from the callback:
 						data: String,
 						bytes: ByteArray,
 						width: Number,
-						height: Number
+						height: Number,
+            			barcodeText: String,
 					}, 
 					glare: Number, 
 					sharpness: Number,
@@ -456,6 +461,7 @@ This information is for processing images manually if they are not captured thro
 			imgData: Object, //received from trigger capture
 			width: Number, //received from trigger capture
 			height: Number, //received from trigger capture
+      isPortraitOrientation: Boolean, //received from trigger capture
 			capType: String, //Used for metrics on how the image was captured, put "CUSTOM" or leave blank for best results
 			callback: Function //shown below
 		)
@@ -566,6 +572,8 @@ The following may significantly increase errors or false results:
 
 1. Get the passive liveness result for the face image:
 
+	**Note:** If you are using a third-party orchestration layer, skip this step. Instead, consult the step for obtaining liveness in the third party's documentation.
+
 	```
 	AcuantPassiveLiveness.getLiveness({
 		endpoint: "ACUANT_PASSIVE_LIVENESS_ENDPOINT",
@@ -610,6 +618,44 @@ The following may significantly increase errors or false results:
 	```
 	AcuantPassiveLiveness.end()
 	```
+	
+----------
+
+## Performing face match
+
+1. The following example shows how to perform a call to the Face Match API. Perform this call with the extracted document face image and with the face image that results from a passive liveness workflow. For the authorization field, either basic or bearer token authorization is valid. In both cases, a SubscriptionId is still required.
+
+	**Note:** If you are using a third-party orchestration layer, skip this section. Instead, consult the steps for performing face match in the third party's documentation.
+
+		async function getFaceMatch(frmEndpoint, subscription, tokenBasic, callback) {
+			const body = {
+				'Settings': {
+					'SubscriptionId': subscription
+				},
+				'Data': {
+					'ImageOne': face1,
+					'ImageTwo': face2
+				}
+			};
+		
+			try {
+				const response = await fetch(frmEndpoint + '/api/v1/facematch', {
+					method: 'POST',
+					body: JSON.stringify(body),
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': 'Basic ' + tokenBasic,
+						'Accept': 'application/json'
+					}
+				});
+		
+				const myJson = await response.json();
+				callback(myJson);
+			} catch (e) {
+				console.log('Error while matching faces: ' + e);
+				callback(null);
+			}
+		}
 
 ----------
 

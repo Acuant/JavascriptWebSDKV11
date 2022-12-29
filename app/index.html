@@ -109,7 +109,7 @@
 </head>
 
 <body>
-  <p id="desc">11.7.1</p>
+  <p id="desc"></p>
   <div id="acuant-loader" class="row text-center" style="display:none;">
     <div class="col-md-12">
       <div class="loader" style="margin: 20% auto 0 auto"></div>
@@ -117,19 +117,24 @@
   </div>
   <div id="camera-btn" class="row text-center" style="display:none; margin:10% 0 10% 0">
     <div class="col-md-6 btn-group">
-      <button class="btn btn-success mr-2" onClick="openFaceCaptureCamera()">Passive Liveness</button>
       <button class="btn btn-success mr-2" onClick="openCamera()">Open Camera</button>
+    </div>
+    <div class="col-md-6 btn-group" style="margin: 3% auto 0 auto">
+      <button class="btn btn-success mr-2" onClick="openFaceCaptureCamera()">Passive Liveness</button>
+      <button class="btn btn-success mr-2" onClick="openRunFaceMatch()">FRM Example</button>
+    </div>
+    <div id="face-buttons" class="col-md-6 btn-group" style="display: none; margin: 3% auto 0 auto">
+      
+      <label for="file">Choose 2 face images</label>
+      <input id="face-button-1" class="btn btn-success mr-2" type="file" multiple="true" accept="image/jpeg" onchange="facesSelected()"/>
+      <input id="face-button-2" class="btn btn-success mr-2" type="file" multiple="true" accept="image/jpeg" style="margin: 3% auto 0 auto" onchange="facesSelected()"/>
     </div>
   </div>
   <div id="acuant-face-capture-container" class="face-camera-container">
     <div id="face-detection-text" class="detection-state"></div>
   </div>
-  <div class="row">
-    <div class="col-md-12 text-center">
-      <div id="acuant-camera"></div>
-    </div>
-  </div>
-  <div id="result-face" style="display:none;">
+  <div id="acuant-camera"></div>
+  <div id="result-face" style="display:none; margin: 10% auto">
     <div class="row from-group text-center mt-2">
       <label class="col-md-2" for="face-score">Score: </label>
       <input class="form-control col-md-3" id="face-score" value="" />
@@ -165,6 +170,9 @@
         <label for="dpi">DPI: </label><input id="dpi" value="" />
       </div>
       <div class="col-md-3">
+        <label for="dpi">Barcode: </label><input id="barcode" value="" />
+      </div>
+      <div class="col-md-3">
         <button class="btn btn-success" onclick="saveImage()">Save</button>
       </div>
     </div>
@@ -189,6 +197,7 @@
     id_username: "",
     id_password: "",
     passive_subscriptionId:"",
+    frm_endpoint: "https://frm.acuant.net",
     acas_endpoint: "https://acas.acuant.net",
     liveness_endpoint:"https://us.passlive.acuant.net"
   }
@@ -196,6 +205,7 @@
   const player = document.getElementById('acuant-player');
 
   const cameraBtn = document.getElementById('camera-btn');
+  const faceButtons = document.getElementById('face-buttons');
   const camera = document.getElementById('acuant-camera');
   const desc = document.getElementById('desc');
   const result = document.getElementById('result-id');
@@ -210,6 +220,7 @@
   const sharpnessInput = document.getElementById('sharpness');
   const glareInput = document.getElementById('glare');
   const dpiInput = document.getElementById('dpi');
+  const barcodeInput = document.getElementById('barcode');
 
   const loader = document.getElementById('acuant-loader');
 
@@ -265,6 +276,7 @@
 
     desc.style.display = "none"
     result.style.display = "none";
+    faceButtons.style.display = 'none';
     resultFace.style.display = "none";
 
     startCamera();
@@ -305,6 +317,7 @@
 
   function onError(error, code) {
     camera.style.display = "none";
+    faceCaptureContainer.style.display = "none";
     console.error(error, code);
     liveCaptureFailed = true;
 
@@ -363,6 +376,7 @@
     sharpnessInput.value = result.sharpness;
     glareInput.value = result.glare;
     dpiInput.value = result.dpi;
+    barcodeInput.value = result.image.barcodeText;
   }
 
   function saveImage() {
@@ -408,6 +422,123 @@
     console.error("Got an unexpected error callback:", errorMsg);
   }
 
+  //**************** Face Match Example ==========================
+
+  //Rather than having the user manually supply two images you should instead 
+  // use the image resulting from passive liveness and the face image returned
+  // by AssureID.
+  //
+  //The only part of this code you should have to implement is the getFaceMatch 
+  // method. The rest simply handles loading the images from user files and 
+  // making ui changes.
+  function openRunFaceMatch() {
+
+    if (faceButtons.style.display == 'block') {
+      faceButtons.style.display = 'none';
+    } else {
+      faceButtons.style.display = 'block';
+    }
+  }
+
+  function onFaceMatch(json) {
+    face1 = null;
+    face2 = null;
+    document.getElementById('face-button-1').value = '';
+    document.getElementById('face-button-2').value = '';
+    resultFace.style.display = "block";
+    cameraBtn.style.display = "block";
+    loader.style.display = "none";
+    if (json.Score && json.IsMatch) {
+      setUIValues("face-score", json.Score);
+      setUIValues("face-result", json.IsMatch);
+      setUIValues("face-error-description", "");
+      setUIValues("face-error-code", "");
+      setUIValues("face-transaction", json.TransactionId);
+    }
+    else {
+      setUIValues("face-score", "");
+      setUIValues("face-result", "");
+      setUIValues("face-error-description", "Error with Face Match");
+      setUIValues("face-error-code", "Error with Face Match");
+      setUIValues("face-transaction", "");
+    }
+  }
+
+  let face1;
+  let face2;
+
+  function facesSelected(e) {
+    const inputs = document.querySelectorAll('input[type=file]');
+    const files = [];
+
+    inputs.forEach(element => {
+      let filesLocal = element.files;
+      if (filesLocal && filesLocal.length >= 1) {
+        for (let i = 0; i < filesLocal.length; ++i) {
+          files.push(filesLocal[i]);
+        };
+      }
+    });
+
+    if (files.length >= 2) {
+      resultFace.style.display = "none";
+      cameraBtn.style.display = "none";
+      faceButtons.style.display = 'none';
+      result.style.display = 'none';
+      desc.style.display = 'none';
+      loader.style.display = "block";
+      loadImage(files[0], 1);
+      loadImage(files[1], 2);
+    }
+  }
+
+  function loadImage(imageFile, faceNum) {
+
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      if (faceNum == 1) {
+        face1 = e.target.result.replace('data:image/jpeg;base64,','');
+      } else {
+        face2 = e.target.result.replace('data:image/jpeg;base64,','');
+      }
+      if (face1 && face2) {
+        let base64Token = btoa(Credential.passive_subscriptionId + ';' + Credential.passive_username + ':' + Credential.passive_password);
+        getFaceMatch(Credential.frm_endpoint, Credential.passive_subscriptionId, base64Token, onFaceMatch);
+      }
+    }
+    reader.readAsDataURL(imageFile);
+  }
+
+  async function getFaceMatch(frmEndpoint, subscription, tokenBasic, callback) {
+    const body = {
+      'Settings': {
+        'SubscriptionId': subscription
+      },
+      'Data': {
+        'ImageOne': face1,
+        'ImageTwo': face2
+      }
+    };
+
+    try {
+      const response = await fetch(frmEndpoint + '/api/v1/facematch', {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + tokenBasic,
+          'Accept': 'application/json'
+        }
+      });
+
+      const myJson = await response.json();
+      callback(myJson);
+    } catch (e) {
+      console.log('Error while matching faces: ' + e);
+      callback(null);
+    }
+  }
+
   //**************** Passive Liveness==========================
 
   function setUIValues(id, value) {
@@ -427,6 +558,7 @@
   const openFaceCaptureCamera = () => {
     resultFace.style.display = "none";
     cameraBtn.style.display = "none";
+    faceButtons.style.display = 'none';
     result.style.display = 'none';
     desc.style.display = 'none';
     faceDetectionTextDiv.innerHTML = "LOADING DETECTOR";
@@ -529,5 +661,6 @@
 <script async src="/webSdk/AcuantCamera.min.js" charset="utf-8"></script>
 <script async src="/webSdk/AcuantPassiveLiveness.min.js" charset="utf-8"></script>
 <script async src="/webSdk/opencv.min.js" charset="utf-8"></script>
+<script async src="/webSdk/html5-qrcode.min.js"></script>
 
 </html>

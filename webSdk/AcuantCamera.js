@@ -80,6 +80,7 @@ var AcuantCameraUI = (function () {
     errorCallback = errorCb;
     if (options) {
       userOptions = options;
+      // eslint-disable-next-line no-prototype-builtins
       if (!userOptions.text.hasOwnProperty('BIG_DOCUMENT')) {
         userOptions.text.BIG_DOCUMENT = 'TOO CLOSE';
       }
@@ -208,7 +209,7 @@ var AcuantCameraUI = (function () {
         captureCb.onCaptured(response);
       }
 
-      AcuantCamera.evaluateImage(response.data, response.width, response.height, capType, (result) => {
+      AcuantCamera.evaluateImage(response.data, response.width, response.height, response.isPortraitOrientation, capType, (result) => {
         captureCb.onCropped(result);
       });
     });
@@ -486,6 +487,7 @@ var AcuantCameraUI = (function () {
 
 })();
 
+/* eslint no-undef: 0 */
 // eslint-disable-next-line no-unused-vars, no-var
 var AcuantCamera = (function () {
   'use strict';
@@ -582,13 +584,14 @@ var AcuantCamera = (function () {
 
   function getUserConfig() {
     let config = {
-      targetWidth: (window.innerWidth || 950),
-      targetHeight: (window.innerHeight),
       frameScale: 1,
       primaryConstraints: {
         video: {
           facingMode: { exact: 'environment' },
-          aspectRatio: Math.max(window.innerWidth, window.innerHeight) * 1.0 / Math.min(window.innerWidth, window.innerHeight),
+          //1.3333 aspect ratio and lower ideal height seems to result in better focus and higher dpi on ios devices.
+          // I believe this is because the true ratio of the camera is 4:3 so this ratio means people do not need to get as close
+          // to the id to get good dpi. Cameras might struggle to focus at very close angles.
+          aspectRatio: 4 / 3,
           resizeMode: 'none',
 
           //This might help performance, especially on low end devices. Might be less important after apple fixes the ios 15 bug,
@@ -596,12 +599,11 @@ var AcuantCamera = (function () {
           //20221110 update removing this as this did not seem to be relevant and might be negatively affecting firefox
           //frameRate: { min: 10, ideal: 15, max: 15 }
         }
-      }
+      },
+      fixedHeight: null,
+      fixedWidth: null,
     };
 
-    //1.3333 aspect ratio and lower ideal height seems to result in better focus and higher dpi on ios devices.
-    // I believe this is because the true ratio of the camera is 4:3 so this ratio means people do not need to get as close
-    // to the id to get good dpi. Cameras might struggle to focus at very close angles.
     if (isIOS()) {
       if (isDeviceAffectedByIOS16Issue()) {
         // ios devices dont support zoom, because why would they?!
@@ -612,11 +614,6 @@ var AcuantCamera = (function () {
         //unsure about the stability of pushing resolution this high, but I have not seen a crash thus far
         config.primaryConstraints.video.height = { min: 1440, ideal: 2880 };
       } else {
-        //1.3333 aspect ratio and lower ideal height seems to result in better focus and higher dpi on ios devices.
-        // I believe this is because the true ratio of the camera is 4:3 so this ratio means people do not need to get as close
-        // to the id to get good dpi. Cameras might struggle to focus at very close angles.
-        //20221110 update something like the ios 16 fix might work better for this, if we can detect those devices
-        config.primaryConstraints.video.aspectRatio = 4 / 3;
         if (isiOS15()) {
           config.primaryConstraints.video.width = { min: MAX_VIDEO_WIDTH_IOS, ideal: MAX_VIDEO_WIDTH_IOS };
         } else {
@@ -734,8 +731,7 @@ var AcuantCamera = (function () {
           });
         resolve(minSuffixDevice.device);
       })
-        .catch(function(_) {
-          // retuning no device
+        .catch(function() {
           resolve();
         });
     });        
@@ -743,15 +739,6 @@ var AcuantCamera = (function () {
 
   function startCamera(constraints, iteration = 0) {
     const MAX_ITERATIONS = 2;
-    function turnOnCamera(stream) {
-      if (isSafari()) {
-        //there is a third party library called screenfully which could enable fullscreen behavior in safari.
-        enableCamera(stream);
-      }
-      else {
-        requestFullScreen(stream);
-      }
-    }
 
     const getDeviceWasAbleToReadLabels = Boolean(constraints.video.deviceId);
     navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
@@ -763,25 +750,15 @@ var AcuantCamera = (function () {
             stopMediaTracks(stream);
             startCamera(userConfig.primaryConstraints, iteration++);
           } else {
-            turnOnCamera(stream);
+            enableCamera(stream);
           }
         });
       } else {
-        turnOnCamera(stream);
+        enableCamera(stream);
       }
     })
       .catch((error) => {
         callCameraError(error, AcuantJavascriptWebSdk.START_FAIL_CODE);
-      });
-  }
-
-  function requestFullScreen(stream) {
-    acuantCamera.requestFullscreen()
-      .then(function () {
-        enableCamera(stream);
-      })
-      .catch(function (_) {
-        enableCamera(stream);
       });
   }
 
@@ -808,16 +785,16 @@ var AcuantCamera = (function () {
     }
 
     acuantCamera.style.position='relative';
-    acuantCamera.style.boxSizing='border-box';
-
     acuantCamera.innerHTML=
-            '<video id="acuant-player" width="100%" height="auto" autoplay playsinline style="display:block; image-orientation:none;"></video>' +
-            '<canvas id="acuant-ui-canvas" width="100%" height="auto" style="display:block; position:absolute; top:0; left:0;"></canvas>';
+            '<video id="acuant-player" autoplay playsinline style="display:block; image-orientation:none; object-fit: fill;"></video>' +
+            '<canvas id="acuant-ui-canvas" style="display:block; position:absolute; top:0; left:0;"></canvas>';
 
     player = document.getElementById('acuant-player');
 
     hiddenCanvas = document.createElement('canvas');
-    hiddenContext = hiddenCanvas.getContext('2d');
+    //willReadFrequently is only enabled on Android since it's not implemented on iOS
+    hiddenContext = hiddenCanvas.getContext('2d', { willReadFrequently: !isIOS() });
+
     uiCanvas = document.getElementById('acuant-ui-canvas');
 
     if (isStarted) {
@@ -959,25 +936,13 @@ var AcuantCamera = (function () {
           height: height
         });
 
-        evaluateImage(imgData, width, height, 'MANUAL', onManualCaptureCallback.onCropped);
+        evaluateImage(imgData, width, height, null, 'MANUAL', onManualCaptureCallback.onCropped);
       };
     };
         
     if(file && file.files[0]){
       reader.readAsArrayBuffer(file.files[0]);
     }
-  }
-
-  function isSafari() {
-    const ua = navigator.userAgent.toLowerCase();
-    if (ua.indexOf('safari') != -1) {
-      if (ua.indexOf('chrome') > -1) {
-        return false;
-      } else {
-        return true;
-      }
-    }
-    return false;
   }
 
   function stopMediaTracks(stream) {
@@ -1045,9 +1010,9 @@ var AcuantCamera = (function () {
     return ver && ver != -1 && ver.length >= 1 && ver[0] == 15;
   }
 
- function isiOS16() {
+  function isiOS16() {
     let ver = iOSversion();
-    return ver && ver != -1 && ver.length >= 1 && ver[0] == 16
+    return ver && ver != -1 && ver.length >= 1 && ver[0] == 16;
   }
 
   function isDeviceAffectedByIOS16Issue() {
@@ -1096,18 +1061,8 @@ var AcuantCamera = (function () {
   }
 
   function setDimens() {
-    let targetWidth = 0;
-    let targetHeight = 0;
-
-    //not sure if this check is needed, but the original implementation had it so I left it.
-    //seems to work without it tho.
-    if (isSafari()) {
-      targetWidth = document.body.clientWidth;
-      targetHeight = document.body.clientHeight;
-    } else {
-      targetWidth = window.innerWidth;
-      targetHeight = window.innerHeight;
-    }
+    let targetWidth;
+    let targetHeight;
 
     if (player.videoWidth < player.videoHeight) {
       userConfig.canvasScale = (player.videoHeight / player.videoWidth);
@@ -1115,14 +1070,56 @@ var AcuantCamera = (function () {
     else {
       userConfig.canvasScale = (player.videoWidth / player.videoHeight);
     }
+    targetWidth = window.innerWidth;
+    targetHeight = window.innerHeight;
+    if (!userConfig.fixedHeight) userConfig.fixedHeight = acuantCamera.clientHeight;
+    if (!userConfig.fixedWidth) userConfig.fixedWidth = acuantCamera.clientWidth;
+    if (userConfig.fixedHeight && userConfig.fixedWidth && userConfig.fixedWidth > userConfig.fixedHeight) {
+      userConfig.fixedHeight = acuantCamera.clientWidth;
+      userConfig.fixedWidth = acuantCamera.clientHeight;
+    }
 
     if (window.matchMedia('(orientation: portrait)').matches) {
-      player.width = uiCanvas.width = targetWidth;
-      player.height = uiCanvas.height = targetWidth * userConfig.canvasScale;
+      if (userConfig.fixedWidth) {
+        if (userConfig.fixedWidth < targetWidth) {
+          targetWidth = userConfig.fixedWidth;
+        }
+        targetHeight = targetWidth * userConfig.canvasScale;
+      } else if (userConfig.fixedHeight) {
+        let width = userConfig.fixedHeight / userConfig.canvasScale;
+        if (width < targetWidth) {
+          targetHeight = userConfig.fixedHeight;
+          targetWidth = width;
+        }
+      }
+    } else {
+      if (userConfig.fixedWidth) {
+        if (userConfig.fixedWidth < targetHeight) {
+          targetHeight = userConfig.fixedWidth;
+        }
+        targetWidth = targetHeight * userConfig.canvasScale;
+      } else if (userConfig.fixedHeight) {
+        let width = userConfig.fixedHeight / userConfig.canvasScale;
+        if (width < targetHeight) {
+          targetWidth = userConfig.fixedHeight;
+          targetHeight = width;
+        }
+      }
     }
-    else {
-      player.width = uiCanvas.width = targetHeight * userConfig.canvasScale;
-      player.height = uiCanvas.height = targetHeight;
+    player.width = uiCanvas.width = targetWidth;
+    player.height = uiCanvas.height = targetHeight;
+  }
+
+  //We need to restart the camera when navigator is sent to background at devices where the zoom constraint is applied,
+  //otherwise, zoom value is override when resuming capture
+  function onVisibilityChange() {
+    if (manualCaptureInput || !isStarted) {
+      return;
+    }
+
+    if (document.visibilityState === 'visible') {
+      endCamera();
+      start();
     }
   }
 
@@ -1156,8 +1153,8 @@ var AcuantCamera = (function () {
     runDetection();
   }
 
-  function evaluateImage(imgData, width, height, capType, callback) {
-    let result = {};
+  function evaluateImage(imgData, width, height, isPortraitOrientation, capType, callback) {
+    let result = { isPortraitOrientation };
     let waitingOnTheOther = true;
 
     AcuantJavascriptWebSdk.moire(imgData, width, height, {
@@ -1207,6 +1204,11 @@ var AcuantCamera = (function () {
       result.sharpness = sharpness;
       result.glare = glare;
       result.image.data = await toBase64(result, capType);
+      if (document.getElementById(AcuantJavascriptWebSdk.BARCODE_READER_ID)) {
+        try{
+          result.image.barcodeText = await scanImage(result.image.data);
+        } catch (e) { result.image.barcodeText = undefined; }
+      }
       signImage(result, callback);
     }
 
@@ -1214,6 +1216,20 @@ var AcuantCamera = (function () {
       onSuccess: handleMetrics,
       onFail: () => handleMetrics(-1, -1),
     });
+  }
+
+  function scanImage(image) {
+    let arr = image.split(','),
+      mime = arr[0].match(/:(.*?);/)[1],
+      bstr = atob(arr[1]),
+      n = bstr.length,
+      u8arr = new Uint8Array(n);
+    while(n--){
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    const imageFile = new File([u8arr], 'imageFile', {type:mime});
+    let html5qrcode = new Html5Qrcode(AcuantJavascriptWebSdk.BARCODE_READER_ID, { formatsToSupport: [ Html5QrcodeSupportedFormats.PDF_417 ] });
+    return html5qrcode.scanFile(imageFile, false);
   }
 
   function signImage(result, callback) {
@@ -1230,6 +1246,9 @@ var AcuantCamera = (function () {
   }
 
   function removeEvents() {
+    if (isSamsungNote10OrS10OrNewer()) {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    }
     window.removeEventListener('resize', onResize);
     if (player) {
       player.removeEventListener('play', restartDetectionAfterBrowserResume);
@@ -1238,6 +1257,9 @@ var AcuantCamera = (function () {
   }
     
   function addEvents() {
+    if (isSamsungNote10OrS10OrNewer()) {
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
     window.addEventListener('resize', onResize);
     if (player) {    
       player.addEventListener('play', restartDetectionAfterBrowserResume);
@@ -1348,7 +1370,7 @@ var AcuantCamera = (function () {
           }
         }
 
-        const isTooFarAway = !response.isCorrectAspectRatio || minRatio < minRatioLowerBoundThreshold || maxRatio < maxRatioLowerBoundThreshold;
+        const isTooFarAway = !response.isCorrectAspectRatio || (minRatio < minRatioLowerBoundThreshold && maxRatio < maxRatioLowerBoundThreshold);
         const isTooClose = minRatio >= minRatioUpperBoundThreshold || maxRatio >= maxRatioUpperBoundThreshold;
 
         if (response.type === ACUANT_DOCUMENT_TYPE.NONE) {
@@ -1376,7 +1398,7 @@ var AcuantCamera = (function () {
   }
 
   function triggerCapture(callback) {
-    let imgData;
+    let imgData, isPortraitOrientation;
     try {
       if (player.videoWidth == 0) {
         throw 'width 0';
@@ -1387,6 +1409,7 @@ var AcuantCamera = (function () {
       hiddenContext.drawImage(player, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
       imgData = hiddenContext.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
       hiddenContext.clearRect(0, 0, hiddenCanvas.width, hiddenCanvas.height);
+      isPortraitOrientation = window.matchMedia('(orientation: portrait)').matches;
     } catch (e) {
       sequenceBreak();
       return;
@@ -1395,7 +1418,8 @@ var AcuantCamera = (function () {
     callback({
       data: imgData,
       width: hiddenCanvas.width,
-      height:  hiddenCanvas.height
+      height: hiddenCanvas.height,
+      isPortraitOrientation,
     });
   }
 
@@ -1417,7 +1441,7 @@ var AcuantCamera = (function () {
     let isManual = capType != 'AUTO' && capType != 'TAP';
 
     if (result.cardtype !== 2) {
-      if ((!isManual && window.matchMedia('(orientation: portrait)').matches) || (isManual && captureOrientation === 6)) {
+      if ((!isManual && result.isPortraitOrientation) || (isManual && captureOrientation === 6)) {
         hiddenContext.rotate(Math.PI); //180 degrees
         //the width and height are negative as an alternative to counting out the transform needed 
         // to get to the middle of the image. Avoids possible mistakes with off by one pixel.

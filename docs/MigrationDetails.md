@@ -1,5 +1,49 @@
 # Migration Details JavaScript Web SDK
 
+## v11.8.0
+
+### Acuant Camera
+
+- A new parameter `isPortraitOrientation` was included at **triggerCapture** response and **evaluateImage** function input. It is a nullable boolean used to rotate the image preview if needed, as long as it was taken using live capture.
+
+  ```js
+  AcuantCamera.triggerCapture((response) => {})
+  response = {
+    data: object,
+    width: number,
+    height: number,
+    isPortraitOrientation: boolean
+  }
+
+  function evaluateImage(imgData, width, height, isPortraitOrientation, capType, callback)
+  ```
+
+- Custom camera dimensions are now supported by setting height and/or width at **acuant-camera** div. If both dimensions are customized and do not adhere to the aspect ratio, one dimension will be overridden.
+
+  ```js
+  <div id="acuant-camera" style="height:custom-height; width:custom-width"></div>
+  ```
+
+- Barcode scanner functionality was added to acuant camera. If a barcode is present at the captured document, the barcode read result is included at the response of **onCropped** callback:
+
+  ```js
+    response = {
+      image: { 
+        data: String,
+        bytes: ByteArray,
+        width: Number,
+        height: Number,
+        barcodeText: String,
+      }, 
+      glare: Number, 
+      sharpness: Number,
+      cardType: Number,
+      dpi: Number
+   }
+  ```
+
+----------
+	
 ## v11.7.1
 
 v11.7.1 is backwards compatible. This section provides details about the focus issues in iOS 16 and tools for more in-depth implementations. If you are not interested in this information, you can ignore this section.
@@ -18,10 +62,10 @@ To help account for these cases, we provided the ability for the implementer to 
 
 If both cookies are set, `AcuantForceRegularCapture=true` takes priority. If, as an implementer, you have additional knowledge about the user's device, you can use the cookies to guarantee that the user is instructed to capture at the correct distance. You also can use the cookies to, for example, send a user to distant capture if the user has captured a blurry image several times. Or, prompt the user by asking whether the user's device is one of the affected ones, and then use the cookies to send the user to the correct capture flow.
 
-On most devices manual capture also allows for capture of sharp, high resolution images, this is another alternative if a user is consistently getting low sharpness.
-
 We are hopeful that Apple will resolve this issue so we can return all devices to the regular capture.
 
+
+----------
 
 ## v11.7.0
 
@@ -52,6 +96,8 @@ const options = {
     }
   }
 ```
+
+----------
 
 ## v11.6.0
 
@@ -200,7 +246,7 @@ Remove the old html elements (canvas and video) and replace them with a single d
 
 	<div id="acuant-camera"></div>
       
-Most likely, you are already using a viewport meta tag for your Mobile page. Using a meta tag is now a requirement. If you don't use the tag, the device will render at a much higher resolution and cause frequent GPU and memory failures.
+Most likely, you are already using a viewport meta tag for your Mobile page. Using a meta tag is now a requirement. If you don’t use the tag, the device will render at a much higher resolution and cause frequent GPU and memory failures.
 
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 		
