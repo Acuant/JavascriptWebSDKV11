@@ -296,31 +296,11 @@ var AcuantCameraUI = (function () {
     }
   };
 
-  function isSafari() {
-    let ua = navigator.userAgent.toLowerCase();
-    if (ua.indexOf('safari') != -1) {
-      if (ua.indexOf('chrome') > -1) {
-        return false;
-      } else {
-        return true;
-      }
-    }
-    return false;
-  }
-
   function getDimension() {
-    if (isSafari()) {
-      return {
-        height: Math.min(document.body.clientHeight, uiCanvas.height),
-        width: Math.min(document.body.clientWidth, uiCanvas.width)
-      };
-    }
-    else {
-      return {
-        height: uiCanvas.height,
-        width: uiCanvas.width
-      };
-    }
+    return {
+      height: uiCanvas.height,
+      width: uiCanvas.width
+    };
   }
 
   function drawCorners(point, index) {

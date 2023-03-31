@@ -1,6 +1,6 @@
-# Acuant JavaScript Web SDK v11.8.0
+# Acuant JavaScript Web SDK v11.8.1
 
-**December 2022**
+**March 2023**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
