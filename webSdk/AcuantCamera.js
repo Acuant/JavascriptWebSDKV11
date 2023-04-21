@@ -686,32 +686,35 @@ var AcuantCamera = (function () {
   //could be prone to error
   function getDevice() {
     return new Promise((resolve) => {
-      navigator.mediaDevices.enumerateDevices().then(function(devices) {
-        const minSuffixDevice = {
-          suffix: undefined,
-          device: undefined,
-        };
-        devices.filter((device) => {
-          return device.kind === 'videoinput';
-        })
-          .forEach(function(device) {
-            const activeCameraIsBackFacing = (device.getCapabilities && device.getCapabilities().facingMode.length && device.getCapabilities().facingMode[0] === 'environment') 
-                        || isBackCameraLabel(device.label);
-            if (activeCameraIsBackFacing) {
-              let split = device.label.split(',');
-              let cameraSuffixNumber = parseInt(split[0][split[0].length -1]);
+      navigator.mediaDevices.enumerateDevices()
+        .then((devices) => {
+          const minSuffixDevice = {
+            suffix: undefined,
+            device: undefined,
+          };
+          const dualWideCamera = devices.find(d => d.label === 'Back Dual Wide Camera');
+          if (isiOS164Plus() && dualWideCamera) {
+            minSuffixDevice.device = dualWideCamera;
+          } else {
+            devices
+              .filter(device => device.kind === 'videoinput')
+              .forEach(device => {
+                if (isBackCameraLabel(device.label)) {
+                  let split = device.label.split(',');
+                  let cameraSuffixNumber = parseInt(split[0][split[0].length -1]);
 
-              if (cameraSuffixNumber || cameraSuffixNumber === 0) {
-                if (minSuffixDevice.suffix === undefined || minSuffixDevice.suffix > cameraSuffixNumber) {
-                  minSuffixDevice.suffix = cameraSuffixNumber;
-                  minSuffixDevice.device = device;
+                  if (cameraSuffixNumber || cameraSuffixNumber === 0) {
+                    if (minSuffixDevice.suffix === undefined || minSuffixDevice.suffix > cameraSuffixNumber) {
+                      minSuffixDevice.suffix = cameraSuffixNumber;
+                      minSuffixDevice.device = device;
+                    }
+                  }
                 }
-              }
-            }
-          });
-        resolve(minSuffixDevice.device);
-      })
-        .catch(function() {
+              });
+          }
+          resolve(minSuffixDevice.device);
+        })
+        .catch(() => {
           resolve();
         });
     });        
@@ -720,23 +723,24 @@ var AcuantCamera = (function () {
   function startCamera(constraints, iteration = 0) {
     const MAX_ITERATIONS = 2;
 
-    const getDeviceWasAbleToReadLabels = Boolean(constraints.video.deviceId);
-    navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
-      if (!getDeviceWasAbleToReadLabels && iteration < MAX_ITERATIONS) {
-        // Check if there is a better camera to use once we have permissions
-        getDevice().then(function(device) {
-          if (device && device.deviceId !== stream.getVideoTracks()[0].getSettings().deviceId) {
-            userConfig.primaryConstraints.video.deviceId = device.deviceId;
-            stopMediaTracks(stream);
-            startCamera(userConfig.primaryConstraints, iteration++);
-          } else {
-            enableCamera(stream);
-          }
-        });
-      } else {
-        enableCamera(stream);
-      }
-    })
+    const getDeviceWasAbleToReadLabels = Boolean(constraints);
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then((stream) => {
+        if (!getDeviceWasAbleToReadLabels && iteration < MAX_ITERATIONS) {
+          // Check if there is a better camera to use once we have permissions
+          getDevice().then((device) => {
+            if (device && device.deviceId !== stream.getVideoTracks()[0].getSettings().deviceId) {
+              userConfig.primaryConstraints.video.deviceId = device.deviceId;
+              stopMediaTracks(stream);
+              startCamera(userConfig.primaryConstraints, iteration++);
+            } else {
+              enableCamera(stream);
+            }
+          });
+        } else {
+          enableCamera(stream);
+        }
+      })
       .catch((error) => {
         callCameraError(error, AcuantJavascriptWebSdk.START_FAIL_CODE);
       });
@@ -790,10 +794,7 @@ var AcuantCamera = (function () {
       }
 
       acuantCamera.dispatchEvent(new Event('acuantcameracreated'));
-      getDevice().then((device) => {
-        if (device) userConfig.primaryConstraints.video.deviceId = device.deviceId;
-        startCamera(userConfig.primaryConstraints);
-      });
+      startCamera(userConfig.primaryConstraints);
     }
   }
 
@@ -990,9 +991,14 @@ var AcuantCamera = (function () {
     return ver && ver != -1 && ver.length >= 1 && ver[0] == 15;
   }
 
-  function isiOS16() {
+  function isiOS163OrLess() {
     let ver = iOSversion();
-    return ver && ver != -1 && ver.length >= 1 && ver[0] == 16;
+    return ver && ver != -1 && ver.length >= 1 && ver[0] == 16 && ver [1] < 4;
+  }
+
+  function isiOS164Plus() {
+    let ver = iOSversion();
+    return ver && ver != -1 && ver.length >= 1 && ver[0] >= 16 && ver [1] >= 4;
   }
 
   function isDeviceAffectedByIOS16Issue() {
@@ -1003,7 +1009,7 @@ var AcuantCamera = (function () {
     if (decodedCookie.includes('AcuantForceDistantCapture=true')) {
       return true;
     }
-    if (isiOS16()) {
+    if (isiOS163OrLess()) {
       let dims = [screen.width, screen.height];
       let long = Math.max(...dims);
       let short = Math.min(...dims);

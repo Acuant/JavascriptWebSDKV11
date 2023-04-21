@@ -1,6 +1,6 @@
-# Acuant JavaScript Web SDK v11.8.1
+# Acuant JavaScript Web SDK v11.8.2
 
-**March 2023**
+**April 2023**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -728,6 +728,12 @@ Web Workers/WASM and CDNs can be used together with workarounds. The following c
 
 ----------
 
+## Using the SDK as part of an iOS or Android WebView
+
+See the [WebView ReadMe](docs/WebViewReadMe.md) for documentation on WebViews.
+
+----------
+
 ## Improved support for devices with extreme memory constraints.
 
 Although the Web Workers use only a minimal amount of memory, you can reduce the memory usage by running only one of the Web Workers at a time. This is recommended only if you have severe memory constraints that you can not address any other way. Normally when both **AcauntImageWorker** and **AcuantMetricsWorker** are running simultaneously, they seamlessly make calls between themselves until they are ready to return a finished image that has been cropped and has had all the metrics run on it. If only one is running at a time, the workflow has to look like this:
@@ -743,9 +749,9 @@ Starting and stopping Workers is a very slow operation, so you will see performa
 
 ## Known Issues/FAQ
 
-1. iPhone 13 Pro, 13 Pro Max, 14 Pro, and 14 Pro Max struggle to focus at close distances when running iOS 16.
+1. iPhone 13 Pro, 13 Pro Max, 14 Pro, and 14 Pro Max struggle to focus at close distances when running iOS 16.0 through 16.3.
 
-	11.7.1 adds a workaround for this issue by having those devices capture from further away. This is a workaround for an issue in iOS 16. There is a more detailed explanation of both the issue and the workaround in the 11.7.1 section of the [Migration Details](docs/MigrationDetails.md). We have been in contact with Apple and they tell us that they are now aware of the issue and are looking into it.
+    11.7.1 adds a workaround for this issue by having those devices capture from farther away. This is a workaround for an issue in iOS 16. There is a more detailed explanation of both the issue and the workaround in the 11.7.1 section of the [Migration Details](docs/MigrationDetails.md). We have been in contact with Apple and as of iOS 16.4 Apple has provided us with the tools to fix this issue properly. This fix was released as part of 11.8.2.
 
 1. iOS 15 has multiple issues that manifest themselves as GPU Highwater failures (ie system daemon used too much memory).
 
