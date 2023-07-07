@@ -18,7 +18,7 @@ var AcuantCameraUI = (function () {
   // let previousState = null;
   let counter = null;
   let uiStateTextElement = null;
-  let errorCallback= null;
+  let errorCallback = null;
 
   let timeout = null;
   let uiTimeout = null;
@@ -76,8 +76,8 @@ var AcuantCameraUI = (function () {
     AcuantCamera.end();
   }
 
-  function start(captureCb, errorCb, options) {
-    errorCallback = errorCb;
+  function start(captureCb, options) {
+    errorCallback = captureCb.onError;
     if (options) {
       userOptions = options;
       // eslint-disable-next-line no-prototype-builtins
@@ -91,8 +91,7 @@ var AcuantCameraUI = (function () {
         reset();
         startCamera(captureCb);
       } 
-    }
-    else {
+    } else {
       onError('Camera not supported.', AcuantJavascriptWebSdk.START_FAIL_CODE);
     }
   }
@@ -200,14 +199,7 @@ var AcuantCameraUI = (function () {
   function capture(captureCb, capType) {
     AcuantCamera.triggerCapture((response) => {
       end();
-      if (document.fullscreenElement) {
-        document.exitFullscreen().then(() => {
-          captureCb.onCaptured(response);
-        });
-      }
-      else {
-        captureCb.onCaptured(response);
-      }
+      captureCb.onCaptured(response);
 
       AcuantCamera.evaluateImage(response.data, response.width, response.height, response.isPortraitOrientation, capType, (result) => {
         captureCb.onCropped(result);
@@ -469,7 +461,7 @@ var AcuantCameraUI = (function () {
 
 /* eslint no-undef: 0 */
 // eslint-disable-next-line no-unused-vars, no-var
-var AcuantCamera = (function () {
+var AcuantCamera = (() => {
   'use strict';
   let player = null;
   let uiCanvas = null;
@@ -497,7 +489,7 @@ var AcuantCamera = (function () {
 
   const TARGET_LONGSIDE_SCALE = 700;
   const TARGET_SHORTSIDE_SCALE = 500;
-  const MAX_VIDEO_WIDTH_IOS = 1920;
+  const MAX_VIDEO_WIDTH_IOS_15 = 1920;
 
   let onDetectCallback = null;
   let onErrorCallback = null;
@@ -549,14 +541,23 @@ var AcuantCamera = (function () {
     return ((/iPad|iPhone|iPod/.test(navigator.platform) && checkIOSVersion()) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
   }
 
-  function isSamsungNote10OrS10OrNewer() {
-    const matchedModelNumber = navigator.userAgent.match(/SM-[N|G]\d{3}/);
+  function isSamsungNote10OrS10OrNewer(dm) {
+    let deviceModel = navigator.userAgent;
+    if (dm) {
+      if (typeof(dm) === 'string') {
+        deviceModel = dm;
+      } else if (typeof(dm.model) === 'string') {
+        deviceModel = dm.model;
+      }
+    }
+
+    const matchedModelNumber = deviceModel.match(/SM-[N|G|S]\d{3}/);
     if (!matchedModelNumber) {
       return false;
     }
 
     const modelNumber = parseInt(matchedModelNumber[0].match(/\d{3}/)[0], 10);
-    const smallerModelNumber = 970; // S10e
+    const smallerModelNumber = deviceModel.match(/SM-S\d{3}/) ? 900 : 970; // S10e
     return !isNaN(modelNumber) && modelNumber >= smallerModelNumber;
   }
 
@@ -586,51 +587,39 @@ var AcuantCamera = (function () {
 
     if (isIOS()) {
       if (isDeviceAffectedByIOS16Issue()) {
-        // ios devices dont support zoom, because why would they?!
-        // config.primaryConstraints.video.zoom = 2;
-        //need to instead bump resolution since we will be capturing from further away, ios 16 seems to have fixed the issue so hopefully alright.
+        //need to bump resolution since we will be capturing from further away
         //also change aspect ratio to make it seem like the id is closer from user's pov.
         config.primaryConstraints.video.aspectRatio = Math.max(window.innerWidth, window.innerHeight) * 1.0 / Math.min(window.innerWidth, window.innerHeight);
-        //unsure about the stability of pushing resolution this high, but I have not seen a crash thus far
         config.primaryConstraints.video.height = { min: 1440, ideal: 2880 };
+      } else if (isiOS15()) {
+        //ios 15 is unstable with large images so we keep the resolution lower
+        config.primaryConstraints.video.width = { min: MAX_VIDEO_WIDTH_IOS_15, ideal: MAX_VIDEO_WIDTH_IOS_15 };
       } else {
-        if (isiOS15()) {
-          config.primaryConstraints.video.width = { min: MAX_VIDEO_WIDTH_IOS, ideal: MAX_VIDEO_WIDTH_IOS };
-        } else {
-          config.primaryConstraints.video.height = { min: 1440, ideal: 1440 };
-        }
+        //other ios devices default to safe size that was in use in the past
+        config.primaryConstraints.video.height = { min: 1440, ideal: 1440 };
       }
     } else {
+      //todo potentially can push this higher to get better dpi (especially on newer android versions)
       config.primaryConstraints.video.height = { min: 1440, ideal: 1440 };
-      if (isSamsungNote10OrS10OrNewer()) {
-        //We found out that some triple camera Samsung devices (S10, S20, Note 20, etc) capture images blurry at edges.
-        //Zooming to 2X, matching the telephoto lens, doesn't solve it completely but mitigates it.
-        config.primaryConstraints.video.zoom = 2.0;
-      }
     } 
 
     return config;
   }
 
-  function enableCamera(stream){
-    isStarted = true;
-    player.srcObject = stream;
-    addEvents();
-    player.play();
+  function enableCamera(stream) {
+    startImageWorker().then(() => {
+      isStarted = true;
+      player.srcObject = stream;
+      addEvents();
+      player.play();
+    });
   }
 
   function callCameraError(error, code) {
     document.cookie = 'AcuantCameraHasFailed=' + code;
     endCamera();
     if (onErrorCallback && typeof (onErrorCallback) === 'function') {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().then(() => {
-          onErrorCallback(error, code);
-        });
-      }
-      else {
-        onErrorCallback(error, code);
-      }
+      onErrorCallback(error, code);
     } else {
       console.error('No error callback set. Review implementation.');
       console.error(error, code);
@@ -723,7 +712,11 @@ var AcuantCamera = (function () {
   function startCamera(constraints, iteration = 0) {
     const MAX_ITERATIONS = 2;
 
-    const getDeviceWasAbleToReadLabels = Boolean(constraints);
+    if (iteration === 0) {
+      acuantCamera.dispatchEvent(new Event('acuantcameracreated'));
+    }
+
+    const getDeviceWasAbleToReadLabels = Boolean(constraints.video.deviceId);
     navigator.mediaDevices.getUserMedia(constraints)
       .then((stream) => {
         if (!getDeviceWasAbleToReadLabels && iteration < MAX_ITERATIONS) {
@@ -761,7 +754,7 @@ var AcuantCamera = (function () {
       return;
     }
 
-    acuantCamera=document.getElementById('acuant-camera');
+    acuantCamera = document.getElementById('acuant-camera');
 
     if(!acuantCamera) {
       callCameraError('Expected div with \'acuant-camera\' id', AcuantJavascriptWebSdk.START_FAIL_CODE);
@@ -783,17 +776,30 @@ var AcuantCamera = (function () {
 
     if (isStarted) {
       callCameraError('already started.', AcuantJavascriptWebSdk.START_FAIL_CODE);
-    }
-    else if (!player || !uiCanvas) {
+    } else if (!player || !uiCanvas) {
       callCameraError('Missing HTML elements.', AcuantJavascriptWebSdk.START_FAIL_CODE);
-    }
-    else {
+    } else {
       uiContext = uiCanvas.getContext('2d');
       if (callback) {
         onDetectCallback = callback;
       }
 
-      acuantCamera.dispatchEvent(new Event('acuantcameracreated'));
+      setZoomConstraintThenStartCamera();
+    }
+  }
+
+  function setZoomConstraintThenStartCamera() {
+    if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+      navigator.userAgentData.getHighEntropyValues(['model']).then(deviceModel => {
+        if (isSamsungNote10OrS10OrNewer(deviceModel)) {
+          //We found out that some triple camera Samsung devices (S10, S20, Note 20, etc) capture images blurry at edges.
+          //Zooming to 2X, matching the telephoto lens, doesn't solve it completely but mitigates it.
+          userConfig.primaryConstraints.video.zoom = 2.0;
+        }
+      }).finally(() => {
+        startCamera(userConfig.primaryConstraints);
+      });
+    } else {
       startCamera(userConfig.primaryConstraints);
     }
   }
@@ -806,7 +812,7 @@ var AcuantCamera = (function () {
       manualCaptureInput.capture = 'environment';
       manualCaptureInput.accept = 'image/*';
       manualCaptureInput.onclick = function(event) {
-        if(event && event.target){
+        if (event && event.target) {
           event.target.value = '';
         }
       };
@@ -853,77 +859,112 @@ var AcuantCamera = (function () {
 
   let captureOrientation = -1;
 
-  function onManualCapture(event) {        
-    let file = event.target,
-      reader = new FileReader();
-
+  function onManualCapture(event) { 
     hiddenCanvas = document.createElement('canvas');
     hiddenContext = hiddenCanvas.getContext('2d');
+    hiddenContext.mozImageSmoothingEnabled = false;
+    hiddenContext.webkitImageSmoothingEnabled = false;
+    hiddenContext.msImageSmoothingEnabled = false;
+    hiddenContext.imageSmoothingEnabled = false;
 
-    reader.onload = (e) => {
-      captureOrientation = getOrientation(e);
-      let image = document.createElement('img');
-      image.src = 'data:image/jpeg;base64,' + arrayBufferToBase64(e.target.result);
-      image.onload = () => {
-                
-        let MAX_WIDTH = 2560,
-          MAX_HEIGHT = 1920,
-          width = image.width,
-          height = image.height;
+    let file = event.target;
+    let reader = new FileReader();
 
-        if (isiOS15()) {
-          MAX_WIDTH = MAX_VIDEO_WIDTH_IOS;
-          MAX_HEIGHT = Math.floor(MAX_VIDEO_WIDTH_IOS * 3 / 4);
-        }
-
-        const largerDimension = width > height ? width : height;
-
-        if (largerDimension > MAX_WIDTH) {
-          if (width < height) {
-            const aspectRatio = height / width;
-            MAX_HEIGHT = MAX_WIDTH;
-            MAX_WIDTH = MAX_HEIGHT / aspectRatio;
-          }
-          else {
-            const aspectRatio = width / height;
-            MAX_HEIGHT = MAX_WIDTH / aspectRatio;
-          }
-        } else {
-          MAX_WIDTH = image.width;
-          MAX_HEIGHT = image.height;
-        }
-
-        hiddenCanvas.width = MAX_WIDTH;
-        hiddenCanvas.height = MAX_HEIGHT;
-
-        hiddenContext.mozImageSmoothingEnabled = false;
-        hiddenContext.webkitImageSmoothingEnabled = false;
-        hiddenContext.msImageSmoothingEnabled = false;
-        hiddenContext.imageSmoothingEnabled = false;
-
-        hiddenContext.drawImage(image, 0, 0, MAX_WIDTH, MAX_HEIGHT);
-
-        width = MAX_WIDTH;
-        height = MAX_HEIGHT;
-
-        const imgData = hiddenContext.getImageData(0, 0, width, height);
-
-        hiddenContext.clearRect(0, 0, MAX_WIDTH, MAX_HEIGHT);
-        image.remove();
-
-        onManualCaptureCallback.onCaptured({
-          data:imgData,
-          width: width,
-          height: height
-        });
-
-        evaluateImage(imgData, width, height, null, 'MANUAL', onManualCaptureCallback.onCropped);
+    const isHeicFile = event.target.files[0] && event.target.files[0].name.includes('.HEIC'); 
+    if (isHeicFile) {
+      reader.onload = (e) => {
+        getImageDataFromHeic(e.target.result)
+          .then(result => {
+            captureOrientation = 6;
+            onManualCaptureCallback.onCaptured(result);
+            evaluateImage(result.data, result.width, result.height, false, 'MANUAL', onManualCaptureCallback.onCropped);
+          })
+          .catch(e => onManualCaptureCallback.onError(e.error, e.code));
       };
-    };
-        
-    if(file && file.files[0]){
+    } else {
+      reader.onload = (e) => {
+        captureOrientation = getOrientation(e);
+        let image = document.createElement('img');
+        image.onload = () => {
+          const { width, height } = calculateImageSize(image.width, image.height);
+          hiddenCanvas.width = width;
+          hiddenCanvas.height = height;
+
+          hiddenContext.drawImage(image, 0, 0, width, height);
+          const imgData = hiddenContext.getImageData(0, 0, width, height);
+
+          hiddenContext.clearRect(0, 0, width, height);
+          image.remove();
+
+          onManualCaptureCallback.onCaptured({
+            data: imgData,
+            width: width,
+            height: height
+          });
+
+          evaluateImage(imgData, width, height, false, 'MANUAL', onManualCaptureCallback.onCropped);
+        };
+        image.src = 'data:image/jpeg;base64,' + arrayBufferToBase64(e.target.result);
+      };
+    }
+
+    if (file && file.files[0]) {
       reader.readAsArrayBuffer(file.files[0]);
     }
+  }
+
+  function getImageDataFromHeic(arrayBuffer) {
+    return new Promise((resolve, reject) => {
+      const magickWasm = window['magick-wasm'];
+      if (!magickWasm) {
+        reject({
+          error: 'HEIC image processing failed. Please make sure Image Magick scripts were integrated as expected.',
+          code: AcuantJavascriptWebSdk.HEIC_NOT_SUPPORTED_CODE
+        });
+        return;
+      }
+
+      magickWasm.initializeImageMagick().then(() => {
+        magickWasm.ImageMagick.read(new Uint8Array(arrayBuffer), image => {
+          const { width, height } = calculateImageSize(image.width, image.height);
+          hiddenCanvas.width = width;
+          hiddenCanvas.height = height;
+          image.resize(width, height);
+          image.writeToCanvas(hiddenCanvas);
+          const data = hiddenContext.getImageData(0, 0, width, height);
+          resolve({ data, width, height });
+        });
+      });
+    });
+  }
+
+  function calculateImageSize(width, height) {
+    let maxWidth = 2560,
+      maxHeight = 1920;
+
+    if (isiOS15()) {
+      maxWidth = MAX_VIDEO_WIDTH_IOS_15;
+      maxHeight = Math.floor(MAX_VIDEO_WIDTH_IOS_15 * 3 / 4);
+    }
+
+    const largerDimension = width > height ? width : height;
+
+    if (largerDimension > maxWidth) {
+      if (width < height) {
+        const aspectRatio = height / width;
+        maxHeight = maxWidth;
+        maxWidth = maxHeight / aspectRatio;
+      }
+      else {
+        const aspectRatio = width / height;
+        maxHeight = maxWidth / aspectRatio;
+      }
+    } else {
+      maxWidth = width;
+      maxHeight = height;
+    }
+
+    return { width: maxWidth, height: maxHeight };
   }
 
   function stopMediaTracks(stream) {
@@ -1140,71 +1181,147 @@ var AcuantCamera = (function () {
   }
 
   function evaluateImage(imgData, width, height, isPortraitOrientation, capType, callback) {
+    if (AcuantJavascriptWebSdk.singleWorkerModel) {
+      evaluateImageHandlingWorkers(imgData, width, height, capType, isPortraitOrientation).then(callback);
+    } else {
+      evaluateImageWithoutHandlingWorkers(imgData, width, height, capType, isPortraitOrientation).then(callback);
+    }
+  }
+
+  async function evaluateImageHandlingWorkers(imgData, width, height, capType, isPortraitOrientation) {
     let result = { isPortraitOrientation };
-    let waitingOnTheOther = true;
 
-    AcuantJavascriptWebSdk.moire(imgData, width, height, {
-      onSuccess: function (moire, moireraw) {
-        result.moire = moire;
-        result.moireraw = moireraw;
+    await startImageWorker();
 
-        if (waitingOnTheOther) {
-          waitingOnTheOther = false;
-        } else {
-          finishCrop(result, capType, callback);
-        }
-      },
-      onFail: function () {
-        result.moire = -1;
-        result.moireraw = -1;
+    const cropResult = await crop(imgData, width, height);
+    if (!cropResult) {
+      return null;
+    }
+    result = { ...result, ...cropResult };
 
-        if (waitingOnTheOther) {
-          waitingOnTheOther = false;
-        } else {
-          finishCrop(result, capType, callback);
-        }
-      }
-    });
+    endImageWorker();
 
-    AcuantJavascriptWebSdk.crop(imgData, width, height, {
-      onSuccess: function (response) {
-        result.cardtype = response.cardtype;
-        result.dpi = response.dpi;
-        result.image = response.image;
+    await startMetricsWorker();
 
-        if (waitingOnTheOther) {
-          waitingOnTheOther = false;
-        } else {
-          finishCrop(result, capType, callback);
-        }
-      },
-      onFail: function () {
-        callback();
-      }
+    const moireResult = await moire(imgData, width, height);
+    const metricsResult = await metrics(result.image);
+    result = { ...result, ...moireResult, ...metricsResult };
+
+    endMetricsWorker();
+
+    const { imageBase64, imageBytes } = processImage(result, capType);
+    result.image.bytes = imageBytes;
+
+    const barcodeText = await extractBarcode(imageBase64);
+    result.image.barcodeText = barcodeText;
+
+    const imageWithExif = await addExif(result, capType, imageBase64);
+
+    await startImageWorker();
+
+    const signedImage = await sign(imageWithExif);
+    result.image.data = signedImage;
+
+    endImageWorker();
+
+    return result;
+  }
+
+  async function evaluateImageWithoutHandlingWorkers(imgData, width, height, capType, isPortraitOrientation) {
+    let result = { isPortraitOrientation };
+
+    const [cropResult, moireResult] = await Promise.all([crop(imgData, width, height), moire(imgData, width, height)]);
+    if (!cropResult) {
+      return null;
+    }
+    result = { ...result, ...cropResult };
+
+    const metricsResult = await metrics(result.image);
+    result = { ...result, ...moireResult, ...metricsResult };
+
+    const { imageBase64, imageBytes } = processImage(result, capType);
+    result.image.bytes = imageBytes;
+
+    const barcodeText = await extractBarcode(imageBase64);
+    result.image.barcodeText = barcodeText;
+
+    const imageWithExif = await addExif(result, capType, imageBase64);
+    const signedImage = await sign(imageWithExif);
+    result.image.data = signedImage;
+
+    return result;
+  }
+
+  function startImageWorker() {
+    return new Promise(resolve => {
+      AcuantJavascriptWebSdk.startImageWorker(resolve);
     });
   }
 
-  function finishCrop(result, capType, callback) {
+  function startMetricsWorker() {
+    return new Promise(resolve => {
+      AcuantJavascriptWebSdk.startMetricsWorker(resolve);
+    });
+  }
 
-    async function handleMetrics (sharpness, glare) {
-      result.sharpness = sharpness;
-      result.glare = glare;
-      result.image.data = await toBase64(result, capType);
-      if (document.getElementById(AcuantJavascriptWebSdk.BARCODE_READER_ID)) {
-        try{
-          result.image.barcodeText = await scanImage(result.image.data);
-        } catch (e) { result.image.barcodeText = undefined; }
-      }
-      signImage(result, callback);
+  function endImageWorker() {
+    AcuantJavascriptWebSdk.endImageWorker();
+  }
+
+  function endMetricsWorker() {
+    AcuantJavascriptWebSdk.endMetricsWorker();
+  }
+
+  function crop(imgData, width, height) {
+    return new Promise(resolve => {
+      AcuantJavascriptWebSdk.crop(imgData, width, height, {
+        onSuccess: ({ image, dpi, cardType }) => resolve({ image, dpi, cardType }),
+        onFail: resolve
+      });
+    });
+  }
+
+  function moire(imgData, width, height) {
+    return new Promise(resolve => {
+      AcuantJavascriptWebSdk.moire(imgData, width, height, {
+        onSuccess: (moire, moireraw) => resolve({ moire, moireraw }),
+        onFail: () => resolve({ moire: -1, moireraw: -1 })
+      });
+    });
+  }
+
+  function metrics(image) {
+    return new Promise(resolve => {
+      AcuantJavascriptWebSdk.metrics(image, image.width, image.height, {
+        onSuccess: (sharpness, glare) => resolve({ sharpness, glare }),
+        onFail: () => resolve({ sharpness: -1, glare: -1 }),
+      });
+    });
+  }
+
+  function sign(imageBase64WithExif) {
+    return new Promise(resolve => {
+      const imageData = base64ToArrayBuffer(imageBase64WithExif);
+      AcuantJavascriptWebSdk.sign(imageData, {
+        onSuccess: (signedImageData) => resolve('data:image/jpeg;base64,' + arrayBufferToBase64(signedImageData)),
+        onFail: resolve
+      });
+    });
+  }
+
+  async function extractBarcode(imageBase64) {
+    if (!document.getElementById(AcuantJavascriptWebSdk.BARCODE_READER_ID)) {
+      return null;
     }
 
-    AcuantJavascriptWebSdk.metrics(result.image, result.image.width, result.image.height, {
-      onSuccess: handleMetrics,
-      onFail: () => handleMetrics(-1, -1),
-    });
+    try {
+      return await scanImageBarcode(imageBase64);
+    } catch {
+      return null;
+    }
   }
 
-  function scanImage(image) {
+  function scanImageBarcode(image) {
     let arr = image.split(','),
       mime = arr[0].match(/:(.*?);/)[1],
       bstr = atob(arr[1]),
@@ -1216,19 +1333,6 @@ var AcuantCamera = (function () {
     const imageFile = new File([u8arr], 'imageFile', {type:mime});
     let html5qrcode = new Html5Qrcode(AcuantJavascriptWebSdk.BARCODE_READER_ID, { formatsToSupport: [ Html5QrcodeSupportedFormats.PDF_417 ] });
     return html5qrcode.scanFile(imageFile, false);
-  }
-
-  function signImage(result, callback) {
-    const imageData = base64ToArrayBuffer(result.image.data);
-    AcuantJavascriptWebSdk.sign(imageData, {
-      onSuccess: function (signedImageData) {
-        result.image.data = 'data:image/jpeg;base64,' + arrayBufferToBase64(signedImageData);
-        callback(result);
-      },
-      onFail: function () {
-        callback();
-      }
-    });
   }
 
   function removeEvents() {
@@ -1349,10 +1453,10 @@ var AcuantCamera = (function () {
               maxRatioLowerBoundThreshold = 0.28;
             }
           } else if (isPassport) {
-            minRatioUpperBoundThreshold = 0.95;
-            maxRatioUpperBoundThreshold = 1;
-            minRatioLowerBoundThreshold = 0.7;
-            maxRatioLowerBoundThreshold = 0.75;
+            minRatioUpperBoundThreshold = 0.95; //closest the short side can be
+            maxRatioUpperBoundThreshold = 1;    //closest the long side can be
+            minRatioLowerBoundThreshold = 0.7;  //furthest the short side can be
+            maxRatioLowerBoundThreshold = 0.75; //furthest the long side can be
           }
         }
 
@@ -1409,25 +1513,24 @@ var AcuantCamera = (function () {
     });
   }
 
-  async function toBase64(result, capType) {
-
+  function processImage({ image, cardType, isPortraitOrientation }, capType) {
     if (!hiddenCanvas || !hiddenContext) {
       hiddenCanvas = document.createElement('canvas');
       hiddenContext = hiddenCanvas.getContext('2d');
     }
 
-    hiddenCanvas.width = result.image.width;
-    hiddenCanvas.height = result.image.height;
+    hiddenCanvas.width = image.width;
+    hiddenCanvas.height = image.height;
 
-    let mImgData = hiddenContext.createImageData(result.image.width, result.image.height);
+    let mImgData = hiddenContext.createImageData(image.width, image.height);
 
-    setImageData(mImgData.data, result.image.data);
+    setImageData(mImgData.data, image.data);
     hiddenContext.putImageData(mImgData, 0, 0);
 
     let isManual = capType != 'AUTO' && capType != 'TAP';
 
-    if (result.cardtype !== 2) {
-      if ((!isManual && result.isPortraitOrientation) || (isManual && captureOrientation === 6)) {
+    if (cardType !== 2) {
+      if ((!isManual && isPortraitOrientation) || (isManual && captureOrientation === 6)) {
         hiddenContext.rotate(Math.PI); //180 degrees
         //the width and height are negative as an alternative to counting out the transform needed 
         // to get to the middle of the image. Avoids possible mistakes with off by one pixel.
@@ -1435,10 +1538,10 @@ var AcuantCamera = (function () {
       }
     }
 
-    result.image.bytes = hiddenContext.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height).data;
+    const imageBytes = hiddenContext.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height).data;
 
-    let quality = (typeof acuantConfig !== 'undefined' && typeof acuantConfig.jpegQuality === 'number') ? acuantConfig.jpegQuality : 1.0;
-    let base64Img = hiddenCanvas.toDataURL('image/jpeg', quality);
+    const quality = (typeof acuantConfig !== 'undefined' && typeof acuantConfig.jpegQuality === 'number') ? acuantConfig.jpegQuality : 1.0;
+    const imageBase64 = hiddenCanvas.toDataURL('image/jpeg', quality);
     hiddenContext.clearRect(0, 0, hiddenCanvas.width, hiddenCanvas.height);
 
     if (hiddenCanvas) {
@@ -1447,8 +1550,7 @@ var AcuantCamera = (function () {
       hiddenCanvas = null;
     }
 
-    const exifResult = await addExif(result, capType, base64Img);
-    return exifResult;
+    return { imageBase64, imageBytes };
   }
 
   function getCvmlVersion() {
@@ -1462,29 +1564,29 @@ var AcuantCamera = (function () {
         }
       });
     });
-  } 
+  }
 
-  async function addExif(result, capType, base64Img) {
+  async function addExif({ dpi, cardType, sharpness, glare, moire, moireraw }, capType, base64Img) {
     const cvmlVersion = await getCvmlVersion();
     const imageDescription = JSON.stringify({
       'cvml':{ 
         'cropping':{
           'iscropped': true,
-          'dpi': result.dpi,
-          'idsize': result.cardType === 2 ? 'ID3': 'ID1',
+          'dpi': dpi,
+          'idsize': cardType === 2 ? 'ID3': 'ID1',
           'elapsed': -1
         },
         'sharpness':{
-          'normalized': result.sharpness,
+          'normalized': sharpness,
           'elapsed': -1
         },
         'moire':{
-          'normalized': result.moire,
-          'raw': result.moireraw,
+          'normalized': moire,
+          'raw': moireraw,
           'elapsed': -1
         },
         'glare':{
-          'normalized': result.glare,
+          'normalized': glare,
           'elapsed': -1
         },
         'version': cvmlVersion

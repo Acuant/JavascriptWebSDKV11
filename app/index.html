@@ -240,9 +240,11 @@
     AcuantJavascriptWebSdk.initialize(base64Token, Credential.acas_endpoint, {
       onSuccess: function () {
         if (!isOldiOS()) {
-          AcuantJavascriptWebSdk.startWorkers(initDone); //no list of workers to start means it will start all the workers. 
+          AcuantJavascriptWebSdk.start(initDone); //no boolean parameter means both image and metrics workers will run at the same time.
         } else {
-          AcuantJavascriptWebSdk.startWorkers(initDone, [AcuantJavascriptWebSdk.ACUANT_IMAGE_WORKER]); //old ios devices can struggle running metrics. See readme for more info.
+          //old iOS devices can struggle running both workers at the same time.
+          //Passing true indicates workers will run one at a time. See readme for more info.
+          AcuantJavascriptWebSdk.start(initDone, true);
         }
       },
       onFail: function (code, description) {
@@ -294,12 +296,13 @@
   }
 
   var cameraCallback = {
-    onCaptured: onCaptured,
-    onCropped: onCropped,
-    onFrameAvailable: function (response) {
+    onCaptured,
+    onCropped,
+    onFrameAvailable: (response) => {
       //get each frame if needed
       //console.log(response)
-    }
+    },
+    onError
   }
 
   function startCamera() {
@@ -307,10 +310,8 @@
     if (AcuantCamera.isCameraSupported && !liveCaptureFailed) {
       cameraBtn.style.display = "none";
       camera.style.display = "block";
-
-      AcuantCameraUI.start(cameraCallback, onError, options);
-    }
-    else {
+      AcuantCameraUI.start(cameraCallback, options);
+    } else {
       startManualCapture()
     }
   }
@@ -331,6 +332,9 @@
           break;
         case AcuantJavascriptWebSdk.START_FAIL_CODE: //camera not supported or permission not granted
           modalText.innerHTML = "Live Camera failed to open. Start manual capture.";
+          break;
+        case AcuantJavascriptWebSdk.HEIC_NOT_SUPPORTED_CODE:
+          modalText.innerHTML = "HEIC image failed to process."
           break;
         default: //unknown error (shouldn't happen)
           modalText.innerHTML = "Unknown camera failure. Start manual capture.";
@@ -363,7 +367,7 @@
   }
 
   function end() {
-    AcuantJavascriptWebSdk.endWorkers();
+    AcuantJavascriptWebSdk.end();
   }
 
   function drawImageOnResult(result) {
@@ -662,5 +666,6 @@
 <script async src="/webSdk/AcuantPassiveLiveness.min.js" charset="utf-8"></script>
 <script async src="/webSdk/opencv.min.js" charset="utf-8"></script>
 <script async src="/webSdk/html5-qrcode.min.js"></script>
-
+<script async src="/webSdk/imageMagick.umd.js"></script>
+<script async type="module" src="/webSdk/imageMagick.mjs"></script>
 </html>
