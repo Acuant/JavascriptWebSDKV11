@@ -1,5 +1,145 @@
 # Migration Details JavaScript Web SDK
 
+## v11.9.0
+
+### SDK Initialization
+
+Acuant has introduced a single-worker model to address cases where low-end devices struggle to handle both the image and metrics web workers simultaneously. The single worker model runs only one web worker at a time and therefore, we have added two new methods for starting and ending the web workers. Although Acuant recommends using the new methods, the old methods will continue to be available.
+
+- Start and run both workers simultaneously:
+
+    Do
+
+    ```js
+      AcuantJavascriptWebSdk.start(callback);
+    ```
+
+    Instead of
+
+    ```js
+      AcuantJavascriptWebSdk.startWorkers(callback);
+    ```
+
+- Start and run one worker at a time::
+
+    Do
+
+    ```js
+      AcuantJavascriptWebSdk.start(callback, true);
+    ```
+
+    Instead of
+
+    ```js
+      AcuantJavascriptWebSdk.startWorkers(callback, [AcuantJavascriptWebSdk.ACUANT_IMAGE_WORKER]);
+
+      //or
+
+      AcuantJavascriptWebSdk.startWorkers(callback, [AcuantJavascriptWebSdk.ACUANT_METRICS_WORKER]);
+    ```
+
+- When using CDNs, the flag is now only expected upon initialization:
+
+    Do
+
+    ```js
+      AcuantJavascriptWebSdk.initialize(base64Token, acasEndpoint, {
+        onSuccess: () => {
+          AcuantJavascriptWebSdk.start(callback);
+        },
+        onFail: (code, description) => { }
+      }, 1);
+
+      // Alternatively AcuantJavascriptWebSdk.initializeWithToken
+    ```
+
+    Instead of
+
+    ```js
+      AcuantJavascriptWebSdk.initialize(base64Token, acasEndpoint, {
+        onSuccess: () => {
+          AcuantJavascriptWebSdk.startWorkers(
+            callback,
+            [AcuantJavascriptWebSdk.ACUANT_IMAGE_WORKER, AcuantJavascriptWebSdk.ACUANT_METRICS_WORKER],
+            1
+          );
+        },
+        onFail: (code, description) => { }
+      }, 1);
+    ```
+
+- To end the web workers:
+
+    Do
+
+    ```js
+      AcuantJavascriptWebSdk.end();
+    ```
+
+    Instead of
+
+    ```js
+      AcuantJavascriptWebSdk.endWorkers()
+    ```
+
+### Acuant Camera
+
+Because HEIC images are now supported on desktops, and to preserve consistency, we changed how the ```onError``` callback is passed to both live and manual capture methods.
+
+- To start live capture:
+
+    Do
+
+    ```js
+      var cameraCallback = {
+        onCaptured: (response) => { },
+        onCropped: (response) => { },
+        onFrameAvailable: (response) => { },
+        onError: (error, code) => { }
+      }
+
+      AcuantCameraUI.start(cameraCallback, options)
+    ```
+
+    Instead of
+
+    ```js
+      var cameraCallback = {
+        onCaptured: (response) => { },
+        onCropped: (response) => { },
+        onFrameAvailable: (response) => { },
+      }
+
+      const onError = (error, code) => { }
+
+      AcuantCameraUI.start(cameraCallback, onError, options)
+    ```
+
+- To start manual capture:
+
+    Do
+
+    ```js
+      var cameraCallback = {
+        onCaptured: (response) => { },
+        onCropped: (response) => { },
+        onError: (error, code) => { }
+      }
+
+      AcuantCamera.startManualCapture(cameraCallback)
+    ```
+
+    Instead of
+
+    ```js
+      var cameraCallback = {
+        onCaptured: (response) => { },
+        onCropped: (response) => { },
+      }
+
+      AcuantCamera.startManualCapture(cameraCallback)
+    ```
+
 ## v11.8.0
 
 ### Acuant Camera
