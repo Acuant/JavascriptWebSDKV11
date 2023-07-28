@@ -1,4 +1,4 @@
-# Acuant JavaScript Web SDK v11.9.0
+# Acuant JavaScript Web SDK v11.9.1
 
 **July 2023**
 
@@ -191,7 +191,7 @@ The SDK includes the following modules:
     PREVIEW: https://preview.acas.acuant.net
     ```
 
-1. After *initialize* or *initializeWithToken* succeeds, start the Web Workers. By default, the function *start* starts all the Workers. Alternatively, you can provide a boolean to enable the single worker model. The single worker model will only start one worker at a time and is intened for low-end devices which struggle to run both workers at the same time. Be aware that this model might degrade the overall performance.
+1. After the *initialize* or *initializeWithToken* function succeeds, start the Web Workers. By default, the *start* function starts all the Workers. Alternatively, you can provide a boolean to enable the single worker model. The single worker model starts only one worker at a time and is intended for low-end devices that struggle to run both workers at the same time. Note that this model might degrade the overall performance.
 
     ```js
       AcuantJavascriptWebSdk.start(
@@ -797,14 +797,7 @@ See the [WebView ReadMe](docs/WebViewReadMe.md) for documentation on WebViews.
 
 ## Improved support for devices with extreme memory constraints
 
-Although the Web Workers use only a minimal amount of memory, you can reduce the memory usage by running only one of the Web Workers at a time. This is recommended only if you have severe memory constraints that you can not address any other way. Normally when both **AcauntImageWorker** and **AcuantMetricsWorker** are running simultaneously, they seamlessly make calls between themselves until they are ready to return a finished image that has been cropped and has had all the metrics run on it. If only one is running at a time, the workflow has to look like this:
-
-- AcuantImageWorker is started to perform detect in your custom camera implementation
-- AcuantImageWorker is ended and AcuantMetricsWorker is started to perform moire on the uncropped image
-- AcuantMetricsWorker is ended and AcuantImageWorker is started to crop the image
-- AcuantImageWorker is ended and AcuantMetricsWorker is started to perform the remaining metrics on the cropped image
-
-Starting and stopping Workers is a very slow operation, so you will see performance losses with this approach. Therefore, use this approach only if absolutely necessary. See [Reference of AcuantJavascriptWebSdk methods](#reference-of-acuantjavascriptwebsdk-methods) for more information about the methods.
+See the single worker model in [Initialize and Start the SDK](#initialize-and-start-the-sdk).
 
 ----------
 

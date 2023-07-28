@@ -498,6 +498,7 @@ var AcuantCamera = (() => {
   let isDetecting = false;
   let detectTimeout = null;
   let acuantCamera;
+  let modelFromHighEntropyValues;
 
   let svc = {
     start: start,
@@ -541,14 +542,12 @@ var AcuantCamera = (() => {
     return ((/iPad|iPhone|iPod/.test(navigator.platform) && checkIOSVersion()) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
   }
 
-  function isSamsungNote10OrS10OrNewer(dm) {
-    let deviceModel = navigator.userAgent;
-    if (dm) {
-      if (typeof(dm) === 'string') {
-        deviceModel = dm;
-      } else if (typeof(dm.model) === 'string') {
-        deviceModel = dm.model;
-      }
+  function isSamsungNote10OrS10OrNewer() {
+    let deviceModel;
+    if (modelFromHighEntropyValues) {
+      deviceModel = modelFromHighEntropyValues;
+    } else {
+      deviceModel = navigator.userAgent;
     }
 
     const matchedModelNumber = deviceModel.match(/SM-[N|G|S]\d{3}/);
@@ -790,16 +789,26 @@ var AcuantCamera = (() => {
 
   function setZoomConstraintThenStartCamera() {
     if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
-      navigator.userAgentData.getHighEntropyValues(['model']).then(deviceModel => {
-        if (isSamsungNote10OrS10OrNewer(deviceModel)) {
+      navigator.userAgentData.getHighEntropyValues(['model']).then(dm => {
+        if (typeof(dm) === 'string') {
+          modelFromHighEntropyValues = dm;
+        } else if (typeof(dm.model) === 'string') {
+          modelFromHighEntropyValues = dm.model;
+        }
+      }).finally(() => {
+        if (isSamsungNote10OrS10OrNewer()) {
           //We found out that some triple camera Samsung devices (S10, S20, Note 20, etc) capture images blurry at edges.
           //Zooming to 2X, matching the telephoto lens, doesn't solve it completely but mitigates it.
           userConfig.primaryConstraints.video.zoom = 2.0;
         }
-      }).finally(() => {
         startCamera(userConfig.primaryConstraints);
       });
     } else {
+      if (isSamsungNote10OrS10OrNewer()) {
+        //We found out that some triple camera Samsung devices (S10, S20, Note 20, etc) capture images blurry at edges.
+        //Zooming to 2X, matching the telephoto lens, doesn't solve it completely but mitigates it.
+        userConfig.primaryConstraints.video.zoom = 2.0;
+      }
       startCamera(userConfig.primaryConstraints);
     }
   }
