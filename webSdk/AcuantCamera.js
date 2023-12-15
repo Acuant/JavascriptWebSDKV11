@@ -797,17 +797,17 @@ var AcuantCamera = (() => {
         }
       }).finally(() => {
         if (isSamsungNote10OrS10OrNewer()) {
-          //We found out that some triple camera Samsung devices (S10, S20, Note 20, etc) capture images blurry at edges.
-          //Zooming to 2X, matching the telephoto lens, doesn't solve it completely but mitigates it.
           userConfig.primaryConstraints.video.zoom = 2.0;
+        } else  if (isDeviceAffectedByIOS17Issue()) {
+          userConfig.primaryConstraints.video.zoom = 1.6;
         }
         startCamera(userConfig.primaryConstraints);
       });
     } else {
       if (isSamsungNote10OrS10OrNewer()) {
-        //We found out that some triple camera Samsung devices (S10, S20, Note 20, etc) capture images blurry at edges.
-        //Zooming to 2X, matching the telephoto lens, doesn't solve it completely but mitigates it.
         userConfig.primaryConstraints.video.zoom = 2.0;
+      } else  if (isDeviceAffectedByIOS17Issue()) {
+        userConfig.primaryConstraints.video.zoom = 1.6;
       }
       startCamera(userConfig.primaryConstraints);
     }
@@ -879,7 +879,7 @@ var AcuantCamera = (() => {
     let file = event.target;
     let reader = new FileReader();
 
-    const isHeicFile = event.target.files[0] && event.target.files[0].name.includes('.HEIC'); 
+    const isHeicFile = event.target.files[0] && event.target.files[0].name && event.target.files[0].name.toLowerCase().endsWith('.heic'); 
     if (isHeicFile) {
       reader.onload = (e) => {
         getImageDataFromHeic(e.target.result)
@@ -1049,6 +1049,26 @@ var AcuantCamera = (() => {
   function isiOS164Plus() {
     let ver = iOSversion();
     return ver && ver != -1 && ver.length >= 1 && ver[0] >= 16 && ver [1] >= 4;
+  }
+
+  function isiOS17() {
+    let ver = iOSversion();
+    return ver && ver != -1 && ver.length >= 1 && ver[0] >= 17;
+  }
+
+  function isDeviceAffectedByIOS17Issue() {
+    if (isiOS17()) {
+      let dims = [screen.width, screen.height];
+      let long = Math.max(...dims);
+      let short = Math.min(...dims);
+      if (long == 852 && short == 393) { //15
+        return true;
+      }
+      if (long == 844 && short == 390) { //14, 12, 13
+        return true;
+      }
+    }
+    return false;
   }
 
   function isDeviceAffectedByIOS16Issue() {
