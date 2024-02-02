@@ -798,7 +798,7 @@ var AcuantCamera = (() => {
       }).finally(() => {
         if (isSamsungNote10OrS10OrNewer()) {
           userConfig.primaryConstraints.video.zoom = 2.0;
-        } else  if (isDeviceAffectedByIOS17Issue()) {
+        } else  if (isiOS17()) {
           userConfig.primaryConstraints.video.zoom = 1.6;
         }
         startCamera(userConfig.primaryConstraints);
@@ -806,7 +806,7 @@ var AcuantCamera = (() => {
     } else {
       if (isSamsungNote10OrS10OrNewer()) {
         userConfig.primaryConstraints.video.zoom = 2.0;
-      } else  if (isDeviceAffectedByIOS17Issue()) {
+      } else  if (isiOS17()) {
         userConfig.primaryConstraints.video.zoom = 1.6;
       }
       startCamera(userConfig.primaryConstraints);
@@ -1048,27 +1048,12 @@ var AcuantCamera = (() => {
 
   function isiOS164Plus() {
     let ver = iOSversion();
-    return ver && ver != -1 && ver.length >= 1 && ver[0] >= 16 && ver [1] >= 4;
+    return ver && ver != -1 && ver.length >= 1 && ver[0] == 16 && ver [1] >= 4;
   }
 
   function isiOS17() {
     let ver = iOSversion();
     return ver && ver != -1 && ver.length >= 1 && ver[0] >= 17;
-  }
-
-  function isDeviceAffectedByIOS17Issue() {
-    if (isiOS17()) {
-      let dims = [screen.width, screen.height];
-      let long = Math.max(...dims);
-      let short = Math.min(...dims);
-      if (long == 852 && short == 393) { //15
-        return true;
-      }
-      if (long == 844 && short == 390) { //14, 12, 13
-        return true;
-      }
-    }
-    return false;
   }
 
   function isDeviceAffectedByIOS16Issue() {

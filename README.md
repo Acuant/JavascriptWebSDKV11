@@ -1,6 +1,6 @@
-# Acuant JavaScript Web SDK v11.9.2
+# Acuant JavaScript Web SDK v11.9.3
 
-**December 2023**
+**February 2024**
 
 See [https://github.com/Acuant/JavascriptWebSDKV11/releases](https://github.com/Acuant/JavascriptWebSDKV11/releases) for release notes.
 
@@ -805,7 +805,7 @@ See the single worker model in [Initialize and Start the SDK](#initialize-and-st
 
 1. Some base model iPhones struggle to focus at close distances when running iOS 17.*.
 
-    The minimum focus distance for many iPhone cameras was increased in iOS 17 and has resulted in a diminished ability for users to meet both the dpi and sharpness constraints required to capture a good image. However, iOS 17 also exposed the ability to use WebRTC to perform optical zoom on iPhone devices that support it. With 11.9.2 the SDK applies a small optical zoom on affected devices to enable capturing a sharp image without sacrificing dpi.
+    The minimum focus distance for many iPhone cameras was increased in iOS 17 and has resulted in a diminished ability for users to meet both the dpi and sharpness constraints required to capture a good image. However, iOS 17 also exposed the ability to use WebRTC to perform optical zoom on iPhone devices that support it. With 11.9.3 the SDK applies a small optical zoom on devices running iOS 17 to enable capturing a sharp image without sacrificing dpi.
 
 1. iPhone 13 Pro, 13 Pro Max, 14 Pro, and 14 Pro Max struggle to focus at close distances when running iOS 16.0 through 16.3.
 
