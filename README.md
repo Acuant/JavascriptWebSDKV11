@@ -840,8 +840,8 @@ See the single worker model in [Initialize and Start the SDK](#initialize-and-st
     Users can tap to switch to the front-facing camera. This is a Chrome issue and unfortunately, we cannot provide a workaround at this time.
 
     See:
-	[https://bugs.chromium.org/p/chromium/issues/detail?id=1182828]()
-	[https://stackoverflow.com/questions/56721653/why-doesnt-capture-user-change-my-phones-camera-to-front-facing]()
+	[https://bugs.chromium.org/p/chromium/issues/detail?id=1182828](https://bugs.chromium.org/p/chromium/issues/detail?id=1182828)
+	[https://stackoverflow.com/questions/56721653/why-doesnt-capture-user-change-my-phones-camera-to-front-facing](https://stackoverflow.com/questions/56721653/why-doesnt-capture-user-change-my-phones-camera-to-front-facing)
 
 1. When embedding the AcuantCamera live capture preview onto an iframe, it may squish the preview causing capture and document detection issues.
 
